@@ -1,0 +1,9 @@
+[Unit]
+Description=Sync but do not install Pacman Files
+
+[Timer]
+OnCalendar=daily
+AccuracySec=1h
+
+[Install]
+WantedBy=multi-user.target

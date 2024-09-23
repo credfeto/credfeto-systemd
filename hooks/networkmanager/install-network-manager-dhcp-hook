@@ -1,0 +1,3 @@
+#! /bin/sh
+
+sudo cp 10-update-timesyncd /etc/NetworkManager/dispatcher.d/10-update-timesyncd

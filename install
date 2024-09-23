@@ -1,0 +1,12 @@
+#! /bin/sh
+
+echo "Installing"...
+
+echo "Installing Network Manager Hook"
+
+echo "Installing Btrfs Scrub"
+
+echo "Installing Pacman Sync"
+
+
+echo "Done"

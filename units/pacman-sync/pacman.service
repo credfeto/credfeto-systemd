@@ -1,0 +1,10 @@
+[Unit]
+Description=Sync but do not install Pacman Files
+
+[Service]
+Type=oneshot
+
+IOSchedulingClass=idle
+CPUSchedulingPolicy=idle
+
+ExecStart=/usr/bin/pacman -Sy
