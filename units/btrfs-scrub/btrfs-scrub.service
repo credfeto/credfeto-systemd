@@ -1,7 +1,7 @@
 [Unit]
 Description=Check volume for errors
 Documentation=man:btrfs-scrub
-After=fstrim.service
+After=network.target
 
 [Service]
 Type=oneshot

@@ -1,12 +1,33 @@
 #! /bin/sh
 
+PROG=$0
+die() {
+    echo
+    echo "$@"
+    exit 1
+}
+
+BASEDIR="$(dirname "$(readlink -f "$0")")"
+echo "Script Dir: $BASEDIR"
+
+
 echo "Installing"...
 
-echo "Installing Network Manager Hook"
+echo "* Installing Network Manager Hook"
+sudo cp "$BASEDIR/hooks/networkmanager/10-update-timesyncd" /etc/NetworkManager/dispatcher.d/10-update-timesyncd 
 
-echo "Installing Btrfs Scrub"
+echo "* Installing Btrfs Scrub"
+sudo cp "$BASEDIR/units/btrfs-scrub/btrfs-scrub.service" /etc/systemd/system/
+sudo cp "$BASEDIR/units/btrfs-scrub/btrfs-scrub.timer" /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now btrfs-scrub.timer
 
-echo "Installing Pacman Sync"
+echo "* Installing Pacman Sync"
+sudo cp "$BASEDIR/units/pacman-sync/pacman-sync.service" /etc/systemd/system/
+sudo cp "$BASEDIR/units/pacman-sync/pacman-sync.timer" /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now pacman-sync.timer
+
 
 
 echo "Done"

@@ -1,5 +1,6 @@
 [Unit]
 Description=Sync but do not install Pacman Files
+After=network.target
 
 [Service]
 Type=oneshot
