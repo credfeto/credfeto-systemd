@@ -13,6 +13,16 @@ echo "Script Dir: $BASEDIR"
 
 echo "Installing"...
 
+echo "* Enabling IPV6 Privacy"
+sudo cp "$BASEDIR/settings/networkmanager/ip6-privacy.conf" /etc/NetworkManager/conf.d/ip6-privacy.conf
+
+echo "* Enabling MAC Privacy"
+sudo cp "$BASEDIR/settings/networkmanager/wifi_rand_mac.conf" /etc/NetworkManager/conf.d/wifi_rand_mac.conf
+
+echo "* Configuring network availibility check"
+sudo cp "$BASEDIR/settings/networkmanager/connectivity-test.conf" /etc/NetworkManager/conf.d/connectivity-test.conf
+
+
 echo "* Installing Network Manager Hook"
 sudo cp "$BASEDIR/hooks/networkmanager/10-update-timesyncd" /etc/NetworkManager/dispatcher.d/10-update-timesyncd 
 
