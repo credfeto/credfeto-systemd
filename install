@@ -22,6 +22,17 @@ sudo cp "$BASEDIR/settings/networkmanager/wifi_rand_mac.conf" /etc/NetworkManage
 echo "* Configuring network availibility check"
 sudo cp "$BASEDIR/settings/networkmanager/connectivity-test.conf" /etc/NetworkManager/conf.d/connectivity-test.conf
 
+echo "* Hardening SSH" 
+sudo cp "$BASEDIR/settings/sshd/01_ProhibitPermitRootLogin.conf" /etc/ssh/sshd_config.d/01_ProhibitPermitRootLogin.conf 
+sudo cp "$BASEDIR/settings/sshd/02_MaxAuthTries.conf" /etc/ssh/sshd_config.d/02_MaxAuthTries.conf
+sudo cp "$BASEDIR/settings/sshd/03_LoginGraceTime.conf" /etc/ssh/sshd_config.d/03_LoginGraceTime.conf
+sudo cp "$BASEDIR/settings/sshd/04_PasswordAuthentication.conf" /etc/ssh/sshd_config.d/04_PasswordAuthentication.conf
+sudo cp "$BASEDIR/settings/sshd/05_PermitEmptyPasswords.conf" /etc/ssh/sshd_config.d/05_PermitEmptyPasswords.conf 
+sudo cp "$BASEDIR/settings/sshd/06_AlternateAuthentication.conf" /etc/ssh/sshd_config.d/06_AlternateAuthentication.conf
+sudo cp "$BASEDIR/settings/sshd/07_X11Forwarding.conf" /etc/ssh/sshd_config.d/07_X11Forwarding.conf
+sudo cp "$BASEDIR/settings/sshd/08_PermitUserEnvironment.conf" /etc/ssh/sshd_config.d/08_PermitUserEnvironment.conf
+sudo cp "$BASEDIR/settings/sshd/09_Tunnelling.conf" /etc/ssh/sshd_config.d/09_Tunnelling.conf
+sudo cp "$BASEDIR/settings/sshd/10_Banner.conf" /etc/ssh/sshd_config.d/10_Banner.conf
 
 echo "* Installing Network Manager Hook"
 sudo cp "$BASEDIR/hooks/networkmanager/10-update-timesyncd" /etc/NetworkManager/dispatcher.d/10-update-timesyncd 
