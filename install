@@ -10,8 +10,31 @@ die() {
 BASEDIR="$(dirname "$(readlink -f "$0")")"
 echo "Script Dir: $BASEDIR"
 
+DOCKER_INSTALED=0
+FLATPAK_INSTALLED=0
+ZOOM_INSTALLED=0
+
+[ -f /usr/bin/docker ] && DOCKER_INSTALLED=1
+[ -f /usr/bin/flatpak ] && FLATPAK_INSTALLED=1
+[ -f /usr/bin/zoom ] && ZOOM_INSTALLED=1
 
 echo "Installing"...
+
+echo "* Defining Sysctl"
+sudo cp "$BASEDIR/settings/sysctl/dmesg_restrict.conf" /etc/sysctl.d/dmesg_restrict.conf
+sudo cp "$BASEDIR/settings/sysctl/harden_bpf.conf" /etc/sysctl.d/harden_bpf.conf
+sudo cp "$BASEDIR/settings/sysctl/kptr_restrict.conf" /etc/sysctl.d/kptr_restrict.conf
+sudo cp "$BASEDIR/settings/sysctl/ptrace_scope.conf" /etc/sysctl.d/ptrace_scope.conf
+sudo cp "$BASEDIR/settings/sysctl/tcp_hardening.conf" /etc/sysctl.d/tcp_hardening.conf
+
+#If zoom, docker, installed don't put this on
+sudo cp "$BASEDIR/settings/sysctl/unprivileged_userns_clone.conf" /etc/sysctl.d/unprivileged_userns_clone.conf
+[ "$DOCKER_INSTALED" -eq 1 ] && rm /etc/sysctl.d/unprivileged_userns_clone.conf
+
+#if zoom installed don't put this on
+sudo cp "$BASEDIR/settings/sysctl/kexec.conf" /etc/sysctl.d/kexec.conf
+[ "$ZOOM_INSTALLED" -eq 1 ] && rm /etc/sysctl.d/kexec.conf
+
 
 echo "* Enabling IPV6 Privacy"
 sudo cp "$BASEDIR/settings/networkmanager/ip6-privacy.conf" /etc/NetworkManager/conf.d/ip6-privacy.conf
@@ -32,7 +55,6 @@ sudo cp "$BASEDIR/settings/sshd/06_AlternateAuthentication.conf" /etc/ssh/sshd_c
 sudo cp "$BASEDIR/settings/sshd/07_X11Forwarding.conf" /etc/ssh/sshd_config.d/07_X11Forwarding.conf
 sudo cp "$BASEDIR/settings/sshd/08_PermitUserEnvironment.conf" /etc/ssh/sshd_config.d/08_PermitUserEnvironment.conf
 sudo cp "$BASEDIR/settings/sshd/09_Tunnelling.conf" /etc/ssh/sshd_config.d/09_Tunnelling.conf
-sudo cp "$BASEDIR/settings/sshd/10_Banner.conf" /etc/ssh/sshd_config.d/10_Banner.conf
 
 echo "* Installing Network Manager Hook"
 sudo cp "$BASEDIR/hooks/networkmanager/10-update-timesyncd" /etc/NetworkManager/dispatcher.d/10-update-timesyncd 
