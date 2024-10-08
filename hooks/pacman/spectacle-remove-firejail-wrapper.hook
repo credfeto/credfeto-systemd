@@ -8,4 +8,4 @@ Target = *
 [Action]
 Description = Removing spectacle from firejail...
 When = PostTransaction
-Exec = /usr/bin/rm rm /home/markr/.local/share/applications/org.kde.spectacle.desktop
+Exec = /usr/bin/rm -f /home/markr/.local/share/applications/org.kde.spectacle.desktop
