@@ -1,0 +1,11 @@
+[Trigger]
+Operation = Remove
+Operation = Install
+Operation = Upgrade
+Type = Package
+Target = *
+
+[Action]
+Description = Removing spectacle from firejail...
+When = PostTransaction
+Exec = /usr/bin/rm rm /home/markr/.local/share/applications/org.kde.spectacle.desktop
