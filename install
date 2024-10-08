@@ -71,6 +71,12 @@ sudo cp "$BASEDIR/units/pacman-sync/pacman-sync.timer" /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now pacman-sync.timer
 
+echo "* Installing Fail2ban"
+sudo pacman -S --needed --noconfirm fail2ban
+sudo systemctl enable --now fail2ban
 
+echo "* Installing firewalld"
+sudo pacman -S --needed --noconfirm firewalld
+sudo systemctl enable --now firewalld
 
 echo "Done"
