@@ -20,6 +20,9 @@ ZOOM_INSTALLED=0
 
 echo "Installing"...
 
+echo "* Enabling dash"
+sudo pacman -S --needed --noconfirm dash dashbinsh checkbashisms
+
 echo "* Defining Sysctl"
 sudo cp "$BASEDIR/settings/sysctl/dmesg_restrict.conf" /etc/sysctl.d/dmesg_restrict.conf
 sudo cp "$BASEDIR/settings/sysctl/harden_bpf.conf" /etc/sysctl.d/harden_bpf.conf
