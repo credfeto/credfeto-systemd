@@ -1,0 +1,6 @@
+
+
+# Allow a socket located in XDG_RUNTIME_DIR to be accessible.
+whitelist ${RUNUSER}/ssh-agent.socket
+
+

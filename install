@@ -71,6 +71,12 @@ sudo cp "$BASEDIR/units/pacman-sync/pacman-sync.timer" /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now pacman-sync.timer
 
+echo "* Installng firejail"
+sudo pacman -S --needed --noconfirm firejail
+[ ! -d "$HOME/.config/firejail" ] && mkdir -p "$HOME/.config/firejail"
+cp "$BASEDIR/settings/firejail/git.local" "$HOME/.config/firejail/git.local"
+cp "$BASEDIR/settings/firejail/ssh.local" "$HOME/.config/firejail/ssh.local"
+
 echo "* Installing Fail2ban"
 sudo pacman -S --needed --noconfirm fail2ban
 sudo systemctl enable --now fail2ban
