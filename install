@@ -107,4 +107,9 @@ sudo systemctl enable --now reflector.service
 # Weekly if still on
 sudo systemctl enable --now reflector.timer
 
+echo "* Enabling pacman cache cleanup"
+sudo pacman -S --needed --noconfirm pacman-contrib
+sudo systemctl enable --now paccache.timer
+
+
 echo "Done"
