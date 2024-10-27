@@ -72,12 +72,6 @@ sudo cp "$BASEDIR/units/btrfs-scrub/btrfs-scrub.timer" /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now btrfs-scrub.timer
 
-echo "* Installing Pacman Sync"
-sudo cp "$BASEDIR/units/pacman-sync/pacman-sync.service" /etc/systemd/system/
-sudo cp "$BASEDIR/units/pacman-sync/pacman-sync.timer" /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now pacman-sync.timer
-
 echo "* Installng firejail"
 sudo pacman -S --needed --noconfirm firejail
 [ ! -d "$HOME/.config/firejail" ] && mkdir -p "$HOME/.config/firejail"
@@ -112,6 +106,16 @@ sudo systemctl restart reflector.service
 echo "* Enabling pacman cache cleanup"
 sudo pacman -S --needed --noconfirm pacman-contrib
 sudo systemctl enable --now paccache.timer
+
+##############################################################################
+# Enable last
+##############################################################################
+
+echo "* Installing Pacman Sync"
+sudo cp "$BASEDIR/units/pacman-sync/pacman-sync.service" /etc/systemd/system/
+sudo cp "$BASEDIR/units/pacman-sync/pacman-sync.timer" /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now pacman-sync.timer
 
 
 echo "Done"
