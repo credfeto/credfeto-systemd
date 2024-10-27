@@ -2,8 +2,10 @@
 Description=Sync but do not install Pacman Files
 
 [Timer]
-OnCalendar=daily
-AccuracySec=1h
+OnCalendar=hourly
+AccuracySec=10m
+# Persist timer over reboots
+Persistent=true
 
 [Install]
 WantedBy=multi-user.target
