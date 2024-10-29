@@ -8,4 +8,4 @@ Type=oneshot
 IOSchedulingClass=idle
 CPUSchedulingPolicy=idle
 
-ExecStart=/usr/bin/pacman -Syu --downloadonly --noconfirm
+ExecStart=/usr/bin/checkupdates --download
