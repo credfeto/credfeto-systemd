@@ -102,6 +102,9 @@ sudo firewall-cmd --permanent --add-rich-rule='rule family="ipv4" source address
 echo "* Enabling ssh-agent"
 systemctl enable --now --user ssh-agent
 
+echo "* Enabling apparmor!
+sudo systemctl enable --now apparmor.service
+
 echo "* Enabling reflector"
 sudo pacman -S --needed --noconfirm reflector
 sudo cp "$BASEDIR/settings/reflector/reflector.conf" /etc/xdg/reflector/reflector.conf
