@@ -62,6 +62,11 @@ sudo cp "$BASEDIR/settings/sshd/06_AlternateAuthentication.conf" /etc/ssh/sshd_c
 sudo cp "$BASEDIR/settings/sshd/07_X11Forwarding.conf" /etc/ssh/sshd_config.d/07_X11Forwarding.conf
 sudo cp "$BASEDIR/settings/sshd/08_PermitUserEnvironment.conf" /etc/ssh/sshd_config.d/08_PermitUserEnvironment.conf
 sudo cp "$BASEDIR/settings/sshd/09_Tunnelling.conf" /etc/ssh/sshd_config.d/09_Tunnelling.conf
+sudo cp "$BASEDIR/settings/sshd/10_ClientAliveCountMax.conf" /etc/ssh/sshd_config.d/10_ClientAliveCountMax.conf
+sudo cp "$BASEDIR/settings/sshd/11_MaxSessions.conf" /etc/ssh/sshd_config.d/11_MaxSessions.conf
+sudo cp "$BASEDIR/settings/sshd/12_LogLevel.conf" /etc/ssh/sshd_config.d/12_LogLevel.conf
+sudo cp "$BASEDIR/settings/sshd/13_TCPKeepAlive.conf" /etc/ssh/sshd_config.d/13_TCPKeepAlive.conf
+
 
 echo "* Installing Network Manager Hook"
 sudo cp "$BASEDIR/hooks/networkmanager/10-update-timesyncd" /etc/NetworkManager/dispatcher.d/10-update-timesyncd 
