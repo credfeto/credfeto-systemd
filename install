@@ -79,6 +79,8 @@ cp "$BASEDIR/settings/firejail/git.local" "$HOME/.config/firejail/git.local"
 cp "$BASEDIR/settings/firejail/ssh.local" "$HOME/.config/firejail/ssh.local"
 
 echo "* Installing Fail2ban"
+sudo cp "$BASEDIR/settings/fail2ban/default.local" "/etc/fail2ban/jail.d/default.local"
+sudo cp "$BASEDIR/settings/fail2ban/ssh.local" "/etc/fail2ban/jail.d/ssh.local"
 sudo pacman -S --needed --noconfirm fail2ban
 sudo systemctl enable --now fail2ban
 
@@ -106,6 +108,9 @@ sudo systemctl restart reflector.service
 echo "* Enabling pacman cache cleanup"
 sudo pacman -S --needed --noconfirm pacman-contrib
 sudo systemctl enable --now paccache.timer
+
+echo "* installing arch-audit"
+sudo pacman -S --needed --noconfirm arch-audit
 
 ##############################################################################
 # Enable last
