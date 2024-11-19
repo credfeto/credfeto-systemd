@@ -32,7 +32,9 @@ sudo cp "$BASEDIR/settings/sysctl/dmesg_restrict.conf" /etc/sysctl.d/dmesg_restr
 sudo cp "$BASEDIR/settings/sysctl/harden_bpf.conf" /etc/sysctl.d/harden_bpf.conf
 sudo cp "$BASEDIR/settings/sysctl/kptr_restrict.conf" /etc/sysctl.d/kptr_restrict.conf
 sudo cp "$BASEDIR/settings/sysctl/ptrace_scope.conf" /etc/sysctl.d/ptrace_scope.conf
-sudo cp "$BASEDIR/settings/sysctl/tcp_hardening.conf" /etc/sysctl.d/tcp_hardening.conf
+sudo cp "$BASEDIR/settings/sysctl/fs.conf" /etc/sysctl.d/fs.conf
+sudo cp "$BASEDIR/settings/sysctl/kernel_modules.conf" /etc/sysctl.d/kernel_modules.conf
+
 
 #If zoom, docker, installed don't put this on
 sudo cp "$BASEDIR/settings/sysctl/unprivileged_userns_clone.conf" /etc/sysctl.d/unprivileged_userns_clone.conf
