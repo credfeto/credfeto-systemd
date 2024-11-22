@@ -80,7 +80,7 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now btrfs-scrub.timer
 
 echo "* Installng firejail"
-sudo pacman -S --needed --noconfirm firejail
+yay -S --needed --noconfirm firejail firejail-handler-extra firejail-handler-http
 [ ! -d "$HOME/.config/firejail" ] && mkdir -p "$HOME/.config/firejail"
 cp "$BASEDIR/settings/firejail/git.local" "$HOME/.config/firejail/git.local"
 cp "$BASEDIR/settings/firejail/ssh.local" "$HOME/.config/firejail/ssh.local"
@@ -104,6 +104,7 @@ systemctl enable --now --user ssh-agent
 
 echo "* Enabling apparmor"
 sudo systemctl enable --now apparmor.service
+sudo aa-enforce firejail-default
 
 echo "* Enabling reflector"
 sudo pacman -S --needed --noconfirm reflector
