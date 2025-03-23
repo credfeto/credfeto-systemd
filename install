@@ -106,15 +106,15 @@ echo "* Enabling apparmor"
 sudo systemctl enable --now apparmor.service
 sudo aa-enforce firejail-default
 
-echo "* Enabling reflector"
-sudo pacman -S --needed --noconfirm reflector
-sudo cp "$BASEDIR/settings/reflector/reflector.conf" /etc/xdg/reflector/reflector.conf
-# At startup
-sudo systemctl enable reflector.service
-# Weekly if still on
-sudo systemctl enable --now reflector.timer
-# force reflector update
-sudo systemctl restart reflector.service
+#echo "* Enabling reflector"
+#sudo pacman -S --needed --noconfirm reflector
+#sudo cp "$BASEDIR/settings/reflector/reflector.conf" /etc/xdg/reflector/reflector.conf
+## At startup
+#sudo systemctl enable reflector.service
+## Weekly if still on
+#sudo systemctl enable --now reflector.timer
+## force reflector update
+#sudo systemctl restart reflector.service
 
 echo "* Enabling pacman cache cleanup"
 sudo pacman -S --needed --noconfirm pacman-contrib
