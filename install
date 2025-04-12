@@ -59,7 +59,13 @@ sudo cp "$BASEDIR/settings/networkmanager/dns.conf" /etc/NetworkManager/conf.d/d
 
 echo "* Require DNSmasq"
 sudo pacman -S --needed dnsmasq --noconfirm
+
+echo "* Configure DNSmasq"
 sudo cp "$BASEDIR/settings/dnsmasq/00-caching.conf" /etc/NetworkManager/dnsmasq.d/00-caching.conf
+sudo cp "$BASEDIR/settings/dnsmasq/01-async-logs.conf" /etc/NetworkManager/dnsmasq.d/01-async-logs.conf
+sudo cp "$BASEDIR/settings/dnsmasq/02-netflix.conf" /etc/NetworkManager/dnsmasq.d/02-netflix.conf
+sudo cp "$BASEDIR/settings/dnsmasq/03-allow-doh.conf" /etc/NetworkManager/dnsmasq.d/03-allow-doh.conf
+
 
 echo "* Hardening SSH" 
 sudo cp "$BASEDIR/settings/sshd/01_ProhibitPermitRootLogin.conf" /etc/ssh/sshd_config.d/01_ProhibitPermitRootLogin.conf 
