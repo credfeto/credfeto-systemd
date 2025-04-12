@@ -54,6 +54,13 @@ sudo cp "$BASEDIR/settings/networkmanager/wifi_rand_mac.conf" /etc/NetworkManage
 echo "* Configuring network availibility check"
 sudo cp "$BASEDIR/settings/networkmanager/connectivity-test.conf" /etc/NetworkManager/conf.d/connectivity-test.conf
 
+echo "* Configuring network manager dns"
+sudo cp "$BASEDIR/settings/networkmanager/dns.conf" /etc/NetworkManager/conf.d/dns.conf
+
+echo "* Require DNSmasq"
+sudo pacman -S --needed dnsmaq --noconfirm
+sudo cp "$BASEDIR/settings/dnsmasq/00-caching.conf" /etc/NetworkManager/dnsmasq.d/00-caching.conf
+
 echo "* Hardening SSH" 
 sudo cp "$BASEDIR/settings/sshd/01_ProhibitPermitRootLogin.conf" /etc/ssh/sshd_config.d/01_ProhibitPermitRootLogin.conf 
 sudo cp "$BASEDIR/settings/sshd/02_MaxAuthTries.conf" /etc/ssh/sshd_config.d/02_MaxAuthTries.conf
@@ -124,6 +131,10 @@ echo "* installing arch-audit"
 sudo pacman -S --needed --noconfirm arch-audit
 
 ##############################################################################
+echo "* reload network manager config"
+sudo nmcli general reload
+
+##############################################################################
 # Enable last
 ##############################################################################
 
@@ -132,6 +143,7 @@ sudo cp "$BASEDIR/units/pacman-sync/pacman-sync.service" /etc/systemd/system/
 sudo cp "$BASEDIR/units/pacman-sync/pacman-sync.timer" /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now pacman-sync.timer
+
 
 
 echo "Done"
