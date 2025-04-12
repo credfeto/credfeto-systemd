@@ -58,7 +58,7 @@ echo "* Configuring network manager dns"
 sudo cp "$BASEDIR/settings/networkmanager/dns.conf" /etc/NetworkManager/conf.d/dns.conf
 
 echo "* Require DNSmasq"
-sudo pacman -S --needed dnsmaq --noconfirm
+sudo pacman -S --needed dnsmasq --noconfirm
 sudo cp "$BASEDIR/settings/dnsmasq/00-caching.conf" /etc/NetworkManager/dnsmasq.d/00-caching.conf
 
 echo "* Hardening SSH" 
