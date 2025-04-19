@@ -150,6 +150,13 @@ sudo cp "$BASEDIR/units/pacman-sync/pacman-sync.timer" /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now pacman-sync.timer
 
+if [ $FLATPAK_INSTALLED -eq 1 ]; then
+
+  sudo flatpak remote-delete flathub
+  sudo flatpak remote-add --if-not-exists --subset=verified flathub-verified https://flathub.org/repo/flathub.flatpakrepo
+  sudo flatpak remote-add --if-not-exists --filter=/home/markr/work/personal/credfeto-flatpak-filter/flatpak.filter flathub-whitelist https://flathub.org/repo/flathub.flatpakrepo
+
+fi
 
 
 echo "Done"
