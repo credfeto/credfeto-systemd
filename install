@@ -152,7 +152,10 @@ sudo systemctl enable --now pacman-sync.timer
 
 if [ $FLATPAK_INSTALLED -eq 1 ]; then
 
-  sudo flatpak remote-delete flathub
+  HUBS=$(flatpak remotes | cut -f 1 | grep ^flathub$)
+  if [ ! -z "$HUBS" ]; then 
+  	sudo flatpak remote-delete flathub
+  fi
   sudo flatpak remote-add --if-not-exists --subset=verified flathub-verified https://flathub.org/repo/flathub.flatpakrepo
   sudo flatpak remote-add --if-not-exists --filter=/home/markr/work/personal/credfeto-flatpak-filter/flatpak.filter flathub-whitelist https://flathub.org/repo/flathub.flatpakrepo
 
