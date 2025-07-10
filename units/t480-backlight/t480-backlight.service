@@ -1,0 +1,13 @@
+[Unit]
+Description=Switch on keyboard backlight after resume
+After=suspend.target
+After=hibernate.target
+After=hybrid-sleep.target
+
+[Service]
+ExecStart=/usr/local/bin/t480-backlight
+
+[Install]
+WantedBy=suspend.target
+WantedBy=hibernate.target
+WantedBy=hybrid-sleep.target
