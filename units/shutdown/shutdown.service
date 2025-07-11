@@ -1,0 +1,6 @@
+[Unit]
+Description=Shutdown the system at 8 PM
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/systemctl poweroff
