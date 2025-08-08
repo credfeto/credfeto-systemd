@@ -124,7 +124,7 @@ sudo aa-enforce firejail-default
 
 echo "* Enabling logrotate"
 sudo pacman -S --needed --noconfirm logrotate
-systemctl enable --now logrotate.timer
+sudo systemctl enable --now logrotate.timer
 sudo cp "$BASEDIR/settings/logrotate/01-defaults /etc/logrotate.d/01-defaults
 
 echo "* Enabling pacman cache cleanup"
