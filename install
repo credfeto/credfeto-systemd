@@ -20,6 +20,9 @@ ZOOM_INSTALLED=0
 
 echo "Installing"...
 
+echo "* Installing mkinitcpip config"
+sudo cp "$BASEDIR/settings/mkinitcpio/01_compression.conf" /etc/mkinitcpio.conf.d/01_compression.conf
+
 echo "* Installing Pacman hooks"
 [ ! -d /etc/pacman.d/hooks ] && sudo mkdir -p /etc/pacman.d/hooks
 sudo cp "$BASEDIR/hooks/pacman/spectacle-remove-firejail-wrapper.hook" /etc/pacman.d/hooks/spectacle-remove-firejail-wrapper.hook
