@@ -3,7 +3,7 @@ Description=Run shutdown at 8 PM daily
 
 [Timer]
 OnCalendar=*-*-* 20:00:00
-Persistent=true
+Persistent=false
 
 [Install]
 WantedBy=timers.target
