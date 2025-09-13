@@ -25,6 +25,10 @@ ProtectProc=invisible
 RestrictNamespaces=~user
 RestrictNamespaces=~pid
 RestrictNamespaces=~net
+RestrictNamespaces=~uts
+RestrictNamespaces=~mnt
+RestrictNamespaces=~cgroup
+RestrictNamespaces=~ipc
 
 SystemCallFilter=~@clock
 SystemCallFilter=~@cpu-emulation
@@ -37,3 +41,8 @@ SystemCallFilter=~@raw-io
 SystemCallFilter=~@reboot
 SystemCallFilter=~@swap
 
+RestrictAddressFamilies=~AF_PACKET
+RestrictAddressFamilies=~AF_NETLINK
+#RestrictAddressFamilies=~AF_UNIX
+RestrictAddressFamilies=~AF_INET
+RestrictAddressFamilies=~AF_INET6
