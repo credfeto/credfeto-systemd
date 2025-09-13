@@ -10,6 +10,10 @@ IOSchedulingClass=idle
 CPUSchedulingPolicy=idle
 
 
+LockPersonality=true
+ProtectKernelModules=true
+ProtectHome=true
+ProtectSystem=true
 
 ProtectClock=true
 ProtectKernelLogs=true
