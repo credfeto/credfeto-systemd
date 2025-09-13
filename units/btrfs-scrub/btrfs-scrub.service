@@ -5,6 +5,35 @@ After=network.target
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/sh -c 'for i in $(grep btrfs /proc/mounts | cut -f1 -d" " | uniq); do echo scrubbing $i; btrfs scrub start -Bd $i; done'
+ExecStart=/usr/bin/sh -c 'for i in $(mount | grep btrfs | cut -f1 -d" " | uniq); do echo scrubbing $i; btrfs scrub start -Bd $i; done'
 IOSchedulingClass=idle
 CPUSchedulingPolicy=idle
+
+
+
+ProtectClock=true
+ProtectKernelLogs=true
+NoNewPrivileges=true
+ProtectHostname=true
+PrivateNetwork=true
+PrivateTmp=true
+MemoryDenyWriteExecute=true
+NoNewPrivileges=true
+RestrictRealtime=true
+ProtectProc=invisible
+ 
+RestrictNamespaces=~user
+RestrictNamespaces=~pid
+RestrictNamespaces=~net
+
+SystemCallFilter=~@clock
+SystemCallFilter=~@cpu-emulation
+SystemCallFilter=~@debug
+SystemCallFilter=~@module
+SystemCallFilter=~@mount
+SystemCallFilter=~@obsolete
+SystemCallFilter=~@privileged
+SystemCallFilter=~@raw-io
+SystemCallFilter=~@reboot
+SystemCallFilter=~@swap
+
