@@ -20,7 +20,11 @@ ZOOM_INSTALLED=0
 
 echo "Installing"...
 
-echo "* Installing mkinitcpip config"
+echo "* Blacklisting modules"
+sudo cp "$BASEDIR/settings/modprobe/blacklist-firewire.conf" /etc/modprobe.d/blacklist-firewire.conf
+sudo cp "$BASEDIR/settings/modprobe/disable-protocols.conf" /etc/modprobe.d/disable-protocols.conf
+
+echo "* Installing mkinitcpio config"
 sudo cp "$BASEDIR/settings/mkinitcpio/01_compression.conf" /etc/mkinitcpio.conf.d/01_compression.conf
 
 echo "* Installing Pacman hooks"
