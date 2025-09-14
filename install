@@ -117,7 +117,8 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now btrfs-scrub.timer
 
 echo "* Installng firejail"
-yay -S --needed --noconfirm firejail firejail-handler-extra firejail-handler-http
+pacman -S --needed --noconfirm firejail
+[ -f usr/bin/yay ] && yay -S --needed --noconfirm firejail-handler-extra firejail-handler-http
 [ ! -d "$HOME/.config/firejail" ] && mkdir -p "$HOME/.config/firejail"
 cp "$BASEDIR/settings/firejail/git.local" "$HOME/.config/firejail/git.local"
 cp "$BASEDIR/settings/firejail/ssh.local" "$HOME/.config/firejail/ssh.local"
