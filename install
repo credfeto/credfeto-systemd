@@ -26,9 +26,9 @@ sudo chown -R root:root /etc/sudoers.d
 sudo chmod 750 /etc/sudoers.d
 
 echo "Installing Issue and motd"
-sudo cp "$BASEDIR/settings/issue/content" /etc/issue
-sudo cp "$BASEDIR/settings/issue/content" /etc/issue.net
-sudo cp "$BASEDIR/settings/issue/content" /etc/motd
+sudo cp "$BASEDIR/settings/issue/contents" /etc/issue
+sudo cp "$BASEDIR/settings/issue/contents" /etc/issue.net
+sudo cp "$BASEDIR/settings/issue/contents" /etc/motd
 
 
 echo "* Blacklisting modules"
