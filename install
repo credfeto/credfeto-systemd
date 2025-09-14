@@ -49,6 +49,7 @@ sudo pacman -S --needed --noconfirm usbguard
 #       usbguard generate-policy > /etc/usbguard/rules.d/00_base.conf
 sudo bash -c "[ ! -f /etc/usbguard/rules.d/00_base.conf ] && usbguard generate-policy > /etc/usbguard/rules.d/00_base.conf"
 sudo cp "$BASEDIR/settings/usbguard/01_allow_keyboard_and_mouse.conf" /etc/usbguard/rules.d/01_allow_keyboard_and_mouse.conf
+sudo bash -c "chmod 0600 /etc/usbguard/rules.d/*"
 sudo systemctl enable --now usbguard
 
 echo "* Enabling lynis and chkrootkit"
