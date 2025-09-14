@@ -40,7 +40,7 @@ echo "* Ensuring systemd services are removed on pacman uninstall"
 yay -S --needed --noconfirm systemd-cleanup-pacman-hook 
 
 echo "* Enabling lynis and chkrootkit"
-pacman -S --needed --noconfirm lynis chkrootkit
+sudo pacman -S --needed --noconfirm lynis chkrootkit
 
 echo "* Enabling dash"
 sudo pacman -S --needed --noconfirm dash dashbinsh checkbashisms
