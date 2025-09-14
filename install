@@ -25,6 +25,12 @@ sudo chmod -R 640 /etc/sudoers.d
 sudo chown -R root:root /etc/sudoers.d
 sudo chmod 750 /etc/sudoers.d
 
+echo "Installing Issue and motd"
+sudo cp "$BASEDIR/settings/issue/content" /etc/issue
+sudo cp "$BASEDIR/settings/issue/content" /etc/issue.net
+sudo cp "$BASEDIR/settings/issue/content" /etc/motd
+
+
 echo "* Blacklisting modules"
 sudo cp "$BASEDIR/settings/modprobe/blacklist-firewire.conf" /etc/modprobe.d/blacklist-firewire.conf
 sudo cp "$BASEDIR/settings/modprobe/disable-protocols.conf" /etc/modprobe.d/disable-protocols.conf
