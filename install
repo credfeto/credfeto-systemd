@@ -43,6 +43,9 @@ echo "* Installing Pacman hooks"
 sudo cp "$BASEDIR/hooks/pacman/pacman-cache-cleanup.hook" /etc/pacman.d/hooks/pacman-cache-cleanup.hook
 sudo cp "$BASEDIR/hooks/pacman/spectacle-remove-firejail-wrapper.hook" /etc/pacman.d/hooks/spectacle-remove-firejail-wrapper.hook
 
+echo "* Enabling usbguard"
+sudo pacman -S --needed --noconfirm usbguard
+sudo systemctl enable --now usbguard
 
 echo "* Enabling lynis and chkrootkit"
 sudo pacman -S --needed --noconfirm lynis chkrootkit
