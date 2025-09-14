@@ -45,6 +45,10 @@ sudo cp "$BASEDIR/hooks/pacman/spectacle-remove-firejail-wrapper.hook" /etc/pacm
 
 echo "* Enabling usbguard"
 sudo pacman -S --needed --noconfirm usbguard
+# TODO: Generate rules for current connection as 00_base.conf with current devices if it doesn't exist
+#       usbguard generate-policy > /etc/usbguard/rules.d/00_base.conf
+
+sudo cp "$BASEDIR/settings/usbguard/01_allow_keyboard_and_mouse.conf" /etc/usbguard/rules.d/01_allow_keyboard_and_mouse.conf
 sudo systemctl enable --now usbguard
 
 echo "* Enabling lynis and chkrootkit"
