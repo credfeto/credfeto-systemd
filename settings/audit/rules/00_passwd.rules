@@ -1,0 +1,2 @@
+-a always,exit -F arch=b64 -F path=/etc/passwd -F perm=rwxa
+-a always,exit -F arch=b32 -F path=/etc/passwd -F perm=rwxa
