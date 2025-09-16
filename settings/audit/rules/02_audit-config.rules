@@ -1,0 +1,2 @@
+-a always,exit -F arch=b64 -F dir=/etc/audit/rules.d
+-a always,exit -F arch=b32 -F dir=/etc/audit/rules.d

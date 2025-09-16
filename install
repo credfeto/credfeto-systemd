@@ -45,6 +45,10 @@ sudo cp "$BASEDIR/hooks/pacman/spectacle-remove-firejail-wrapper.hook" /etc/pacm
 
 
 echo "* Enabling auditd"
+sudo cp "$BASEDIR/settings/audit/rules/00_passwd.rules" /etc/audit/rules.d
+sudo cp "$BASEDIR/settings/audit/rules/01_security.rules" /etc/audit/rules.d
+sudo cp "$BASEDIR/settings/audit/rules/02_audit-config.rules" /etc/audit/rules.d
+
 sudo systemctl enable --now auditd
 
 echo "* Enabling usbguard"
