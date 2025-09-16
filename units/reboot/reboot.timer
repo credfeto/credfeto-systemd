@@ -1,0 +1,9 @@
+[Unit]
+Description=Reboot every day at 23:15
+
+[Timer]
+OnCalendar=*-*-* 23:15:00
+Persistent=false
+
+[Install]
+WantedBy=timers.target

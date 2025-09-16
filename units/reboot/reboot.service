@@ -1,0 +1,6 @@
+[Unit]
+Description=Reboot every day at 23:15
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/systemctl reboot
