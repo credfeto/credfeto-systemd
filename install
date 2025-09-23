@@ -11,6 +11,7 @@ BASEDIR="$(dirname "$(readlink -f "$0")")"
 echo "Script Dir: $BASEDIR"
 
 DOCKER_INSTALED=0
+INCUS_INSTALLED=0
 FLATPAK_INSTALLED=0
 ZOOM_INSTALLED=0
 
