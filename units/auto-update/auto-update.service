@@ -1,0 +1,7 @@
+[Unit]
+Description=Run arch-update auto check
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=pacman -Syyu --noconfirm
