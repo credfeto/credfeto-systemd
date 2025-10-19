@@ -80,19 +80,19 @@ sudo cp "$BASEDIR/settings/sysctl/kernel_modules.conf" /etc/sysctl.d/kernel_modu
 
 #If zoom, docker, installed don't put this on
 sudo cp "$BASEDIR/settings/sysctl/unprivileged_userns_clone.conf" /etc/sysctl.d/unprivileged_userns_clone.conf
-[ "$DOCKER_INSTALED" -eq 1 ] && rm /etc/sysctl.d/unprivileged_userns_clone.conf
-[ "$INCUS_INSTALED" -eq 1 ] && rm /etc/sysctl.d/unprivileged_userns_clone.conf
+[ "$DOCKER_INSTALED" = 1 ] && rm /etc/sysctl.d/unprivileged_userns_clone.conf
+[ "$INCUS_INSTALED" = 1 ] && rm /etc/sysctl.d/unprivileged_userns_clone.conf
 
 #if zoom installed don't put this on
 sudo cp "$BASEDIR/settings/sysctl/kexec.conf" /etc/sysctl.d/kexec.conf
-[ "$ZOOM_INSTALLED" -eq 1 ] && rm /etc/sysctl.d/kexec.conf
+[ "$ZOOM_INSTALLED" = 1 ] && rm /etc/sysctl.d/kexec.conf
 
 
 echo "* Enabling IPV6 Privacy"
 sudo cp "$BASEDIR/settings/networkmanager/ip6-privacy.conf" /etc/NetworkManager/conf.d/ip6-privacy.conf
 
 echo "* Enabling MAC Privacy"
-[ "$INCUS_INSTALED" -eq 1 ] || sudo cp "$BASEDIR/settings/networkmanager/wifi_rand_mac.conf" /etc/NetworkManager/conf.d/wifi_rand_mac.conf
+[ "$INCUS_INSTALED" = 1 ] || sudo cp "$BASEDIR/settings/networkmanager/wifi_rand_mac.conf" /etc/NetworkManager/conf.d/wifi_rand_mac.conf
 
 echo "* Configuring network availibility check"
 sudo cp "$BASEDIR/settings/networkmanager/connectivity-test.conf" /etc/NetworkManager/conf.d/connectivity-test.conf
