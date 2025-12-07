@@ -46,6 +46,10 @@ sudo cp "$BASEDIR/hooks/pacman/pacman-cache-cleanup.hook" /etc/pacman.d/hooks/pa
 sudo cp "$BASEDIR/hooks/pacman/spectacle-remove-firejail-wrapper.hook" /etc/pacman.d/hooks/spectacle-remove-firejail-wrapper.hook
 
 
+echo "* Installing pkgstats"
+sudo pacman -S --needed --noconfirm pkgstats
+sydo systemctl enable --now pkgstats.timer 
+
 echo "* Enabling auditd"
 sudo cp "$BASEDIR/settings/audit/rules/00_passwd.rules" /etc/audit/rules.d
 sudo cp "$BASEDIR/settings/audit/rules/01_security.rules" /etc/audit/rules.d
