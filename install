@@ -1,13 +1,19 @@
 #! /bin/sh
 
 die() {
-    echo
-    echo "$@"
+    printf '\n\033[31m✗\033[0m %s\n' "$*" >&2
     exit 1
 }
 
+success() {
+    printf '\n\033[32m✓\033[0m %s\n' "$*"
+}
+
+info() {
+    printf '\n\033[32m→\033[0m %s\n' "$*"
+}
+
 BASEDIR="$(dirname "$(readlink -f "$0")")"
-echo "Script Dir: $BASEDIR"
 
 DOCKER_INSTALLED=0
 INCUS_INSTALLED=0
@@ -19,195 +25,213 @@ ZOOM_INSTALLED=0
 [ -f /usr/bin/flatpak ] && FLATPAK_INSTALLED=1
 [ -f /usr/bin/zoom ] && ZOOM_INSTALLED=1
 
-echo "Installing"...
+remove_aur_helpers() {
+    info "Removing AUR helpers"
+    pacman -Qq yay 2>/dev/null && sudo pacman -Rns --noconfirm yay
+    pacman -Qq paru 2>/dev/null && sudo pacman -Rns --noconfirm paru
+}
 
-echo "* Removing AUR helpers"
-pacman -Qq yay 2>/dev/null && sudo pacman -Rns --noconfirm yay
-pacman -Qq paru 2>/dev/null && sudo pacman -Rns --noconfirm paru
+harden_system() {
+    info "Securing /etc/sudoers.d"
+    sudo chmod -R 640 /etc/sudoers.d
+    sudo chown -R root:root /etc/sudoers.d
+    sudo chmod 750 /etc/sudoers.d
 
-echo "Securing /etc/sudoers.d"
-sudo chmod -R 640 /etc/sudoers.d
-sudo chown -R root:root /etc/sudoers.d
-sudo chmod 750 /etc/sudoers.d
+    info "Installing issue and motd"
+    sudo cp "$BASEDIR/settings/issue/contents" /etc/issue
+    sudo cp "$BASEDIR/settings/issue/contents" /etc/issue.net
+    sudo cp "$BASEDIR/settings/issue/contents" /etc/motd
 
-echo "Installing Issue and motd"
-sudo cp "$BASEDIR/settings/issue/contents" /etc/issue
-sudo cp "$BASEDIR/settings/issue/contents" /etc/issue.net
-sudo cp "$BASEDIR/settings/issue/contents" /etc/motd
+    info "Blacklisting modules"
+    sudo cp "$BASEDIR/settings/modprobe/blacklist-firewire.conf" /etc/modprobe.d/blacklist-firewire.conf
+    sudo cp "$BASEDIR/settings/modprobe/disable-protocols.conf" /etc/modprobe.d/disable-protocols.conf
 
+    info "Installing mkinitcpio config"
+    sudo cp "$BASEDIR/settings/mkinitcpio/01_compression.conf" /etc/mkinitcpio.conf.d/01_compression.conf
 
-echo "* Blacklisting modules"
-sudo cp "$BASEDIR/settings/modprobe/blacklist-firewire.conf" /etc/modprobe.d/blacklist-firewire.conf
-sudo cp "$BASEDIR/settings/modprobe/disable-protocols.conf" /etc/modprobe.d/disable-protocols.conf
+    info "Defining sysctl"
+    sudo cp "$BASEDIR/settings/sysctl/dmesg_restrict.conf" /etc/sysctl.d/dmesg_restrict.conf
+    sudo cp "$BASEDIR/settings/sysctl/harden_bpf.conf" /etc/sysctl.d/harden_bpf.conf
+    sudo cp "$BASEDIR/settings/sysctl/kptr_restrict.conf" /etc/sysctl.d/kptr_restrict.conf
+    sudo cp "$BASEDIR/settings/sysctl/ptrace_scope.conf" /etc/sysctl.d/ptrace_scope.conf
+    sudo cp "$BASEDIR/settings/sysctl/fs.conf" /etc/sysctl.d/fs.conf
+    sudo cp "$BASEDIR/settings/sysctl/kernel_modules.conf" /etc/sysctl.d/kernel_modules.conf
 
-echo "* Installing mkinitcpio config"
-sudo cp "$BASEDIR/settings/mkinitcpio/01_compression.conf" /etc/mkinitcpio.conf.d/01_compression.conf
+    sudo cp "$BASEDIR/settings/sysctl/unprivileged_userns_clone.conf" /etc/sysctl.d/unprivileged_userns_clone.conf
+    [ "$DOCKER_INSTALLED" = 1 ] && rm /etc/sysctl.d/unprivileged_userns_clone.conf
+    [ "$INCUS_INSTALLED" = 1 ] && rm /etc/sysctl.d/unprivileged_userns_clone.conf
 
-echo "* Installing Pacman hooks"
-[ ! -d /etc/pacman.d/hooks ] && sudo mkdir -p /etc/pacman.d/hooks
-sudo cp "$BASEDIR/hooks/pacman/pacman-cache-cleanup.hook" /etc/pacman.d/hooks/pacman-cache-cleanup.hook
-sudo cp "$BASEDIR/hooks/pacman/spectacle-remove-firejail-wrapper.hook" /etc/pacman.d/hooks/spectacle-remove-firejail-wrapper.hook
+    sudo cp "$BASEDIR/settings/sysctl/kexec.conf" /etc/sysctl.d/kexec.conf
+    [ "$ZOOM_INSTALLED" = 1 ] && rm /etc/sysctl.d/kexec.conf
+}
 
+install_pacman_hooks() {
+    info "Installing Pacman hooks"
+    [ ! -d /etc/pacman.d/hooks ] && sudo mkdir -p /etc/pacman.d/hooks
+    sudo cp "$BASEDIR/hooks/pacman/pacman-cache-cleanup.hook" /etc/pacman.d/hooks/pacman-cache-cleanup.hook
+    sudo cp "$BASEDIR/hooks/pacman/spectacle-remove-firejail-wrapper.hook" /etc/pacman.d/hooks/spectacle-remove-firejail-wrapper.hook
+}
 
-echo "* Installing pkgstats"
-sudo pacman -S --needed --noconfirm pkgstats
-sudo systemctl enable --now pkgstats.timer
+install_security_tools() {
+    info "Installing pkgstats"
+    sudo pacman -S --needed --noconfirm pkgstats
+    sudo systemctl enable --now pkgstats.timer
 
-echo "* Enabling auditd"
-sudo cp "$BASEDIR/settings/audit/rules/00_passwd.rules" /etc/audit/rules.d
-sudo cp "$BASEDIR/settings/audit/rules/01_security.rules" /etc/audit/rules.d
-sudo cp "$BASEDIR/settings/audit/rules/02_audit-config.rules" /etc/audit/rules.d
+    info "Enabling auditd"
+    sudo cp "$BASEDIR/settings/audit/rules/00_passwd.rules" /etc/audit/rules.d
+    sudo cp "$BASEDIR/settings/audit/rules/01_security.rules" /etc/audit/rules.d
+    sudo cp "$BASEDIR/settings/audit/rules/02_audit-config.rules" /etc/audit/rules.d
+    sudo systemctl enable --now auditd
 
-sudo systemctl enable --now auditd
+    info "Enabling usbguard"
+    sudo pacman -S --needed --noconfirm usbguard
+    sudo bash -c "[ ! -f /etc/usbguard/rules.d/00_base.conf ] && usbguard generate-policy > /etc/usbguard/rules.d/00_base.conf"
+    sudo cp "$BASEDIR/settings/usbguard/01_allow_keyboard_and_mouse.conf" /etc/usbguard/rules.d/01_allow_keyboard_and_mouse.conf
+    sudo cp "$BASEDIR/settings/usbguard/02_mass_storage.conf" /etc/usbguard/rules.d/02_mass_storage.conf
+    sudo bash -c "chmod 0600 /etc/usbguard/rules.d/*"
+    sudo systemctl enable --now usbguard
 
-echo "* Enabling usbguard"
-sudo pacman -S --needed --noconfirm usbguard
-# TODO: Generate rules for current connection as 00_base.conf with current devices if it doesn't exist
-#       usbguard generate-policy > /etc/usbguard/rules.d/00_base.conf
-sudo bash -c "[ ! -f /etc/usbguard/rules.d/00_base.conf ] && usbguard generate-policy > /etc/usbguard/rules.d/00_base.conf"
-sudo cp "$BASEDIR/settings/usbguard/01_allow_keyboard_and_mouse.conf" /etc/usbguard/rules.d/01_allow_keyboard_and_mouse.conf
-sudo cp "$BASEDIR/settings/usbguard/02_mass_storage.conf" /etc/usbguard/rules.d/02_mass_storage.conf
-sudo bash -c "chmod 0600 /etc/usbguard/rules.d/*"
-sudo systemctl enable --now usbguard
+    info "Enabling lynis and chkrootkit"
+    sudo pacman -S --needed --noconfirm lynis chkrootkit
 
-echo "* Enabling lynis and chkrootkit"
-sudo pacman -S --needed --noconfirm lynis chkrootkit
+    info "Installing arch-audit"
+    sudo pacman -S --needed --noconfirm arch-audit
+}
 
-echo "* Enabling dash"
-sudo pacman -S --needed --noconfirm dash dashbinsh checkbashisms
+install_dash() {
+    info "Installing dash"
+    sudo pacman -S --needed --noconfirm dash dashbinsh checkbashisms
+}
 
-echo "* Defining Sysctl"
-sudo cp "$BASEDIR/settings/sysctl/dmesg_restrict.conf" /etc/sysctl.d/dmesg_restrict.conf
-sudo cp "$BASEDIR/settings/sysctl/harden_bpf.conf" /etc/sysctl.d/harden_bpf.conf
-sudo cp "$BASEDIR/settings/sysctl/kptr_restrict.conf" /etc/sysctl.d/kptr_restrict.conf
-sudo cp "$BASEDIR/settings/sysctl/ptrace_scope.conf" /etc/sysctl.d/ptrace_scope.conf
-sudo cp "$BASEDIR/settings/sysctl/fs.conf" /etc/sysctl.d/fs.conf
-sudo cp "$BASEDIR/settings/sysctl/kernel_modules.conf" /etc/sysctl.d/kernel_modules.conf
+configure_network() {
+    info "Enabling IPv6 privacy"
+    sudo cp "$BASEDIR/settings/networkmanager/ip6-privacy.conf" /etc/NetworkManager/conf.d/ip6-privacy.conf
 
+    info "Enabling MAC privacy"
+    [ "$INCUS_INSTALLED" = 1 ] || sudo cp "$BASEDIR/settings/networkmanager/wifi_rand_mac.conf" /etc/NetworkManager/conf.d/wifi_rand_mac.conf
 
-#If zoom, docker, installed don't put this on
-sudo cp "$BASEDIR/settings/sysctl/unprivileged_userns_clone.conf" /etc/sysctl.d/unprivileged_userns_clone.conf
-[ "$DOCKER_INSTALLED" = 1 ] && rm /etc/sysctl.d/unprivileged_userns_clone.conf
-[ "$INCUS_INSTALLED" = 1 ] && rm /etc/sysctl.d/unprivileged_userns_clone.conf
+    info "Configuring network availability check"
+    sudo cp "$BASEDIR/settings/networkmanager/connectivity-test.conf" /etc/NetworkManager/conf.d/connectivity-test.conf
 
-#if zoom installed don't put this on
-sudo cp "$BASEDIR/settings/sysctl/kexec.conf" /etc/sysctl.d/kexec.conf
-[ "$ZOOM_INSTALLED" = 1 ] && rm /etc/sysctl.d/kexec.conf
+    info "Configuring network manager DNS"
+    sudo cp "$BASEDIR/settings/networkmanager/dns.conf" /etc/NetworkManager/conf.d/dns.conf
 
+    info "Installing dnsmasq"
+    sudo pacman -S --needed --noconfirm dnsmasq
 
-echo "* Enabling IPV6 Privacy"
-sudo cp "$BASEDIR/settings/networkmanager/ip6-privacy.conf" /etc/NetworkManager/conf.d/ip6-privacy.conf
+    info "Configuring dnsmasq"
+    sudo cp "$BASEDIR/settings/dnsmasq/00-caching.conf" /etc/NetworkManager/dnsmasq.d/00-caching.conf
+    sudo cp "$BASEDIR/settings/dnsmasq/01-async-logs.conf" /etc/NetworkManager/dnsmasq.d/01-async-logs.conf
+    sudo cp "$BASEDIR/settings/dnsmasq/02-netflix.conf" /etc/NetworkManager/dnsmasq.d/02-netflix.conf
+    sudo cp "$BASEDIR/settings/dnsmasq/03-allow-doh.conf" /etc/NetworkManager/dnsmasq.d/03-allow-doh.conf
 
-echo "* Enabling MAC Privacy"
-[ "$INCUS_INSTALLED" = 1 ] || sudo cp "$BASEDIR/settings/networkmanager/wifi_rand_mac.conf" /etc/NetworkManager/conf.d/wifi_rand_mac.conf
+    info "Installing Network Manager hook"
+    sudo cp "$BASEDIR/hooks/networkmanager/10-update-timesyncd" /etc/NetworkManager/dispatcher.d/10-update-timesyncd
 
-echo "* Configuring network availibility check"
-sudo cp "$BASEDIR/settings/networkmanager/connectivity-test.conf" /etc/NetworkManager/conf.d/connectivity-test.conf
+    info "Installing firewalld"
+    sudo pacman -S --needed --noconfirm firewalld
+    sudo systemctl enable --now firewalld
+    sudo firewall-cmd --permanent --add-rich-rule='rule family="ipv4" source address="10.0.0.0/8" port protocol="tcp" port="22" accept'
+    sudo firewall-cmd --permanent --add-rich-rule='rule family="ipv4" source address="192.168.0.0/16" port protocol="tcp" port="22" accept'
+    sudo firewall-cmd --permanent --add-rich-rule='rule family="ipv4" source address="172.16.0.0/20" port protocol="tcp" port="22" accept'
 
-echo "* Configuring network manager dns"
-sudo cp "$BASEDIR/settings/networkmanager/dns.conf" /etc/NetworkManager/conf.d/dns.conf
+    info "Reloading network manager config"
+    sudo nmcli general reload
+}
 
-echo "* Require DNSmasq"
-sudo pacman -S --needed dnsmasq --noconfirm
+harden_ssh() {
+    info "Hardening SSH"
+    sudo cp "$BASEDIR/settings/sshd/01_ProhibitPermitRootLogin.conf" /etc/ssh/sshd_config.d/01_ProhibitPermitRootLogin.conf
+    sudo cp "$BASEDIR/settings/sshd/02_MaxAuthTries.conf" /etc/ssh/sshd_config.d/02_MaxAuthTries.conf
+    sudo cp "$BASEDIR/settings/sshd/03_LoginGraceTime.conf" /etc/ssh/sshd_config.d/03_LoginGraceTime.conf
+    sudo cp "$BASEDIR/settings/sshd/04_PasswordAuthentication.conf" /etc/ssh/sshd_config.d/04_PasswordAuthentication.conf
+    sudo cp "$BASEDIR/settings/sshd/05_PermitEmptyPasswords.conf" /etc/ssh/sshd_config.d/05_PermitEmptyPasswords.conf
+    sudo cp "$BASEDIR/settings/sshd/06_AlternateAuthentication.conf" /etc/ssh/sshd_config.d/06_AlternateAuthentication.conf
+    sudo cp "$BASEDIR/settings/sshd/07_X11Forwarding.conf" /etc/ssh/sshd_config.d/07_X11Forwarding.conf
+    sudo cp "$BASEDIR/settings/sshd/08_PermitUserEnvironment.conf" /etc/ssh/sshd_config.d/08_PermitUserEnvironment.conf
+    sudo cp "$BASEDIR/settings/sshd/09_Tunnelling.conf" /etc/ssh/sshd_config.d/09_Tunnelling.conf
+    sudo cp "$BASEDIR/settings/sshd/10_ClientAliveCountMax.conf" /etc/ssh/sshd_config.d/10_ClientAliveCountMax.conf
+    sudo cp "$BASEDIR/settings/sshd/11_MaxSessions.conf" /etc/ssh/sshd_config.d/11_MaxSessions.conf
+    sudo cp "$BASEDIR/settings/sshd/12_LogLevel.conf" /etc/ssh/sshd_config.d/12_LogLevel.conf
+    sudo cp "$BASEDIR/settings/sshd/13_TCPKeepAlive.conf" /etc/ssh/sshd_config.d/13_TCPKeepAlive.conf
+}
 
-echo "* Configure DNSmasq"
-sudo cp "$BASEDIR/settings/dnsmasq/00-caching.conf" /etc/NetworkManager/dnsmasq.d/00-caching.conf
-sudo cp "$BASEDIR/settings/dnsmasq/01-async-logs.conf" /etc/NetworkManager/dnsmasq.d/01-async-logs.conf
-sudo cp "$BASEDIR/settings/dnsmasq/02-netflix.conf" /etc/NetworkManager/dnsmasq.d/02-netflix.conf
-sudo cp "$BASEDIR/settings/dnsmasq/03-allow-doh.conf" /etc/NetworkManager/dnsmasq.d/03-allow-doh.conf
+install_btrfs_scrub() {
+    info "Installing btrfs scrub"
+    sudo cp "$BASEDIR/units/btrfs-scrub/btrfs-scrub.service" /etc/systemd/system/
+    sudo cp "$BASEDIR/units/btrfs-scrub/btrfs-scrub.timer" /etc/systemd/system/
+    sudo systemctl daemon-reload
+    sudo systemctl enable --now btrfs-scrub.timer
+}
 
+install_firejail() {
+    info "Installing firejail"
+    sudo pacman -S --needed --noconfirm firejail
+    [ ! -d "$HOME/.config/firejail" ] && mkdir -p "$HOME/.config/firejail"
+    cp "$BASEDIR/settings/firejail/git.local" "$HOME/.config/firejail/git.local"
+    cp "$BASEDIR/settings/firejail/ssh.local" "$HOME/.config/firejail/ssh.local"
+}
 
-echo "* Hardening SSH"
-sudo cp "$BASEDIR/settings/sshd/01_ProhibitPermitRootLogin.conf" /etc/ssh/sshd_config.d/01_ProhibitPermitRootLogin.conf
-sudo cp "$BASEDIR/settings/sshd/02_MaxAuthTries.conf" /etc/ssh/sshd_config.d/02_MaxAuthTries.conf
-sudo cp "$BASEDIR/settings/sshd/03_LoginGraceTime.conf" /etc/ssh/sshd_config.d/03_LoginGraceTime.conf
-sudo cp "$BASEDIR/settings/sshd/04_PasswordAuthentication.conf" /etc/ssh/sshd_config.d/04_PasswordAuthentication.conf
-sudo cp "$BASEDIR/settings/sshd/05_PermitEmptyPasswords.conf" /etc/ssh/sshd_config.d/05_PermitEmptyPasswords.conf
-sudo cp "$BASEDIR/settings/sshd/06_AlternateAuthentication.conf" /etc/ssh/sshd_config.d/06_AlternateAuthentication.conf
-sudo cp "$BASEDIR/settings/sshd/07_X11Forwarding.conf" /etc/ssh/sshd_config.d/07_X11Forwarding.conf
-sudo cp "$BASEDIR/settings/sshd/08_PermitUserEnvironment.conf" /etc/ssh/sshd_config.d/08_PermitUserEnvironment.conf
-sudo cp "$BASEDIR/settings/sshd/09_Tunnelling.conf" /etc/ssh/sshd_config.d/09_Tunnelling.conf
-sudo cp "$BASEDIR/settings/sshd/10_ClientAliveCountMax.conf" /etc/ssh/sshd_config.d/10_ClientAliveCountMax.conf
-sudo cp "$BASEDIR/settings/sshd/11_MaxSessions.conf" /etc/ssh/sshd_config.d/11_MaxSessions.conf
-sudo cp "$BASEDIR/settings/sshd/12_LogLevel.conf" /etc/ssh/sshd_config.d/12_LogLevel.conf
-sudo cp "$BASEDIR/settings/sshd/13_TCPKeepAlive.conf" /etc/ssh/sshd_config.d/13_TCPKeepAlive.conf
+install_fail2ban() {
+    info "Installing fail2ban"
+    sudo cp "$BASEDIR/settings/fail2ban/default.local" "/etc/fail2ban/jail.d/default.local"
+    sudo cp "$BASEDIR/settings/fail2ban/ssh.local" "/etc/fail2ban/jail.d/ssh.local"
+    sudo pacman -S --needed --noconfirm fail2ban
+    sudo systemctl enable --now fail2ban
+}
 
+enable_services() {
+    info "Enabling ssh-agent"
+    systemctl enable --now --user ssh-agent
 
-echo "* Installing Network Manager Hook"
-sudo cp "$BASEDIR/hooks/networkmanager/10-update-timesyncd" /etc/NetworkManager/dispatcher.d/10-update-timesyncd
+    info "Enabling apparmor"
+    sudo systemctl enable --now apparmor.service
+    sudo aa-enforce firejail-default
 
-echo "* Installing Btrfs Scrub"
-sudo cp "$BASEDIR/units/btrfs-scrub/btrfs-scrub.service" /etc/systemd/system/
-sudo cp "$BASEDIR/units/btrfs-scrub/btrfs-scrub.timer" /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now btrfs-scrub.timer
+    info "Enabling logrotate"
+    sudo pacman -S --needed --noconfirm logrotate
+    sudo systemctl enable --now logrotate.timer
+    sudo cp "$BASEDIR/settings/logrotate/01-defaults" /etc/logrotate.d/01-defaults
 
-echo "* Installng firejail"
-sudo pacman -S --needed --noconfirm firejail
-[ ! -d "$HOME/.config/firejail" ] && mkdir -p "$HOME/.config/firejail"
-cp "$BASEDIR/settings/firejail/git.local" "$HOME/.config/firejail/git.local"
-cp "$BASEDIR/settings/firejail/ssh.local" "$HOME/.config/firejail/ssh.local"
+    info "Enabling pacman cache cleanup"
+    sudo pacman -S --needed --noconfirm pacman-contrib
+    sudo systemctl enable --now paccache.timer
 
-echo "* Installing Fail2ban"
-sudo cp "$BASEDIR/settings/fail2ban/default.local" "/etc/fail2ban/jail.d/default.local"
-sudo cp "$BASEDIR/settings/fail2ban/ssh.local" "/etc/fail2ban/jail.d/ssh.local"
-sudo pacman -S --needed --noconfirm fail2ban
-sudo systemctl enable --now fail2ban
+    info "Installing pacman sync"
+    sudo cp "$BASEDIR/units/pacman-sync/pacman-sync.service" /etc/systemd/system/
+    sudo cp "$BASEDIR/units/pacman-sync/pacman-sync.timer" /etc/systemd/system/
+    sudo systemctl daemon-reload
+    sudo systemctl enable --now pacman-sync.timer
+}
 
-echo "* Installing firewalld"
-sudo pacman -S --needed --noconfirm firewalld
-sudo systemctl enable --now firewalld
-# Allow SSH ONLY from private networks
-sudo firewall-cmd --permanent --add-rich-rule='rule family="ipv4" source address="10.0.0.0/8" port protocol="tcp" port="22" accept'
-sudo firewall-cmd --permanent --add-rich-rule='rule family="ipv4" source address="192.168.0.0/16" port protocol="tcp" port="22" accept'
-sudo firewall-cmd --permanent --add-rich-rule='rule family="ipv4" source address="172.16.0.0/20" port protocol="tcp" port="22" accept'
+configure_flatpak() {
+    [ "$FLATPAK_INSTALLED" = 1 ] || return 0
 
-echo "* Enabling ssh-agent"
-systemctl enable --now --user ssh-agent
+    info "Configuring flatpak"
+    HUBS=$(flatpak remotes | cut -f 1 | grep ^flathub$)
+    if [ -n "$HUBS" ]; then
+        sudo flatpak remote-delete flathub
+    fi
+    sudo flatpak remote-add --if-not-exists --subset=verified flathub-verified https://dl.flathub.org/repo
+    sudo flatpak remote-add --if-not-exists --filter=/home/markr/work/personal/credfeto-flatpak-filter/flatpak.filter flathub-whitelist https://dl.flathub.org/repo/
 
-echo "* Enabling apparmor"
-sudo systemctl enable --now apparmor.service
-sudo aa-enforce firejail-default
+    # TODO: If can access https://flathub.markridgwell.com/repo/ then switch url
+    sudo flatpak remote-modify --url=https://flathub.markridgwell.com/repo/ flathub-verified
+    sudo flatpak remote-modify --url=https://flathub.markridgwell.com/repo/ flathub-whitelist
+}
 
-echo "* Enabling logrotate"
-sudo pacman -S --needed --noconfirm logrotate
-sudo systemctl enable --now logrotate.timer
-sudo cp "$BASEDIR/settings/logrotate/01-defaults" /etc/logrotate.d/01-defaults
-
-echo "* Enabling pacman cache cleanup"
-sudo pacman -S --needed --noconfirm pacman-contrib
-sudo systemctl enable --now paccache.timer
-
-echo "* installing arch-audit"
-sudo pacman -S --needed --noconfirm arch-audit
-
-##############################################################################
-echo "* reload network manager config"
-sudo nmcli general reload
-
-##############################################################################
-# Enable last
-##############################################################################
-
-echo "* Installing Pacman Sync"
-sudo cp "$BASEDIR/units/pacman-sync/pacman-sync.service" /etc/systemd/system/
-sudo cp "$BASEDIR/units/pacman-sync/pacman-sync.timer" /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now pacman-sync.timer
-
-if [ $FLATPAK_INSTALLED -eq 1 ]; then
-
-  HUBS=$(flatpak remotes | cut -f 1 | grep ^flathub$)
-  if [ ! -z "$HUBS" ]; then
-  	sudo flatpak remote-delete flathub
-  fi
-  sudo flatpak remote-add --if-not-exists --subset=verified flathub-verified https://dl.flathub.org/repo
-  sudo flatpak remote-add --if-not-exists --filter=/home/markr/work/personal/credfeto-flatpak-filter/flatpak.filter flathub-whitelist https://dl.flathub.org/repo/
-
-  # TODO: If can access https://flathub.markridgwell.com/repo/ then switch url
-  sudo flatpak remote-modify --url=https://flathub.markridgwell.com/repo/ flathub-verified
-  sudo flatpak remote-modify --url=https://flathub.markridgwell.com/repo/ flathub-whitelist
-fi
-
-
-echo "Done"
+info "Script Dir: $BASEDIR"
+info "Installing..."
+remove_aur_helpers
+harden_system
+install_pacman_hooks
+install_security_tools
+install_dash
+configure_network
+harden_ssh
+install_btrfs_scrub
+install_firejail
+install_fail2ban
+enable_services
+configure_flatpak
+success "Done"
