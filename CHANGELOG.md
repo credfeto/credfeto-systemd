@@ -1,4 +1,4 @@
-# Changelog
+﻿# Changelog
 
 All notable changes to this project are documented in this file.
 
@@ -14,7 +14,9 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Fixed missing trailing newlines in units/auto-update scripts
 - Removed tracked .idea/.gitignore file that was already in .gitignore
 ### Changed
+- Refactored install script into named functions for readability and easier future extraction into separate install.d/ scripts
 ### Removed
+- Removed yay and paru AUR helpers from install script; direct AUR package installs are prohibited
 ### Deployment Changes
 <!--
 Releases that have at least been deployed to staging, BUT NOT necessarily released to live.  Changes should be moved from [Unreleased] into here as they are merged into the appropriate release branch
