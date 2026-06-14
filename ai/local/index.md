@@ -14,7 +14,6 @@ This is an index of local instructions that apply to just this project.
 
 ## Instruction Files
 <!-- Locally Maintained -->
-
 | File | Load When | Covers |
 | --- | --- | --- |
 | [arch-packages.instructions.md](arch-packages.instructions.md) | Any install script or package management work is present | AUR helper prohibition, allowed package sources, removal steps |
