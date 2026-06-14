@@ -1,6 +1,5 @@
 #! /bin/sh
 
-PROG=$0
 die() {
     echo
     echo "$@"
@@ -10,7 +9,7 @@ die() {
 BASEDIR="$(dirname "$(readlink -f "$0")")"
 echo "Script Dir: $BASEDIR"
 
-DOCKER_INSTALED=0
+DOCKER_INSTALLED=0
 INCUS_INSTALLED=0
 FLATPAK_INSTALLED=0
 ZOOM_INSTALLED=0
@@ -21,6 +20,10 @@ ZOOM_INSTALLED=0
 [ -f /usr/bin/zoom ] && ZOOM_INSTALLED=1
 
 echo "Installing"...
+
+echo "* Removing AUR helpers"
+pacman -Qq yay 2>/dev/null && sudo pacman -Rns --noconfirm yay
+pacman -Qq paru 2>/dev/null && sudo pacman -Rns --noconfirm paru
 
 echo "Securing /etc/sudoers.d"
 sudo chmod -R 640 /etc/sudoers.d
@@ -48,7 +51,7 @@ sudo cp "$BASEDIR/hooks/pacman/spectacle-remove-firejail-wrapper.hook" /etc/pacm
 
 echo "* Installing pkgstats"
 sudo pacman -S --needed --noconfirm pkgstats
-sudo systemctl enable --now pkgstats.timer 
+sudo systemctl enable --now pkgstats.timer
 
 echo "* Enabling auditd"
 sudo cp "$BASEDIR/settings/audit/rules/00_passwd.rules" /etc/audit/rules.d
@@ -84,8 +87,8 @@ sudo cp "$BASEDIR/settings/sysctl/kernel_modules.conf" /etc/sysctl.d/kernel_modu
 
 #If zoom, docker, installed don't put this on
 sudo cp "$BASEDIR/settings/sysctl/unprivileged_userns_clone.conf" /etc/sysctl.d/unprivileged_userns_clone.conf
-[ "$DOCKER_INSTALED" = 1 ] && rm /etc/sysctl.d/unprivileged_userns_clone.conf
-[ "$INCUS_INSTALED" = 1 ] && rm /etc/sysctl.d/unprivileged_userns_clone.conf
+[ "$DOCKER_INSTALLED" = 1 ] && rm /etc/sysctl.d/unprivileged_userns_clone.conf
+[ "$INCUS_INSTALLED" = 1 ] && rm /etc/sysctl.d/unprivileged_userns_clone.conf
 
 #if zoom installed don't put this on
 sudo cp "$BASEDIR/settings/sysctl/kexec.conf" /etc/sysctl.d/kexec.conf
@@ -96,7 +99,7 @@ echo "* Enabling IPV6 Privacy"
 sudo cp "$BASEDIR/settings/networkmanager/ip6-privacy.conf" /etc/NetworkManager/conf.d/ip6-privacy.conf
 
 echo "* Enabling MAC Privacy"
-[ "$INCUS_INSTALED" = 1 ] || sudo cp "$BASEDIR/settings/networkmanager/wifi_rand_mac.conf" /etc/NetworkManager/conf.d/wifi_rand_mac.conf
+[ "$INCUS_INSTALLED" = 1 ] || sudo cp "$BASEDIR/settings/networkmanager/wifi_rand_mac.conf" /etc/NetworkManager/conf.d/wifi_rand_mac.conf
 
 echo "* Configuring network availibility check"
 sudo cp "$BASEDIR/settings/networkmanager/connectivity-test.conf" /etc/NetworkManager/conf.d/connectivity-test.conf
@@ -114,12 +117,12 @@ sudo cp "$BASEDIR/settings/dnsmasq/02-netflix.conf" /etc/NetworkManager/dnsmasq.
 sudo cp "$BASEDIR/settings/dnsmasq/03-allow-doh.conf" /etc/NetworkManager/dnsmasq.d/03-allow-doh.conf
 
 
-echo "* Hardening SSH" 
-sudo cp "$BASEDIR/settings/sshd/01_ProhibitPermitRootLogin.conf" /etc/ssh/sshd_config.d/01_ProhibitPermitRootLogin.conf 
+echo "* Hardening SSH"
+sudo cp "$BASEDIR/settings/sshd/01_ProhibitPermitRootLogin.conf" /etc/ssh/sshd_config.d/01_ProhibitPermitRootLogin.conf
 sudo cp "$BASEDIR/settings/sshd/02_MaxAuthTries.conf" /etc/ssh/sshd_config.d/02_MaxAuthTries.conf
 sudo cp "$BASEDIR/settings/sshd/03_LoginGraceTime.conf" /etc/ssh/sshd_config.d/03_LoginGraceTime.conf
 sudo cp "$BASEDIR/settings/sshd/04_PasswordAuthentication.conf" /etc/ssh/sshd_config.d/04_PasswordAuthentication.conf
-sudo cp "$BASEDIR/settings/sshd/05_PermitEmptyPasswords.conf" /etc/ssh/sshd_config.d/05_PermitEmptyPasswords.conf 
+sudo cp "$BASEDIR/settings/sshd/05_PermitEmptyPasswords.conf" /etc/ssh/sshd_config.d/05_PermitEmptyPasswords.conf
 sudo cp "$BASEDIR/settings/sshd/06_AlternateAuthentication.conf" /etc/ssh/sshd_config.d/06_AlternateAuthentication.conf
 sudo cp "$BASEDIR/settings/sshd/07_X11Forwarding.conf" /etc/ssh/sshd_config.d/07_X11Forwarding.conf
 sudo cp "$BASEDIR/settings/sshd/08_PermitUserEnvironment.conf" /etc/ssh/sshd_config.d/08_PermitUserEnvironment.conf
@@ -131,7 +134,7 @@ sudo cp "$BASEDIR/settings/sshd/13_TCPKeepAlive.conf" /etc/ssh/sshd_config.d/13_
 
 
 echo "* Installing Network Manager Hook"
-sudo cp "$BASEDIR/hooks/networkmanager/10-update-timesyncd" /etc/NetworkManager/dispatcher.d/10-update-timesyncd 
+sudo cp "$BASEDIR/hooks/networkmanager/10-update-timesyncd" /etc/NetworkManager/dispatcher.d/10-update-timesyncd
 
 echo "* Installing Btrfs Scrub"
 sudo cp "$BASEDIR/units/btrfs-scrub/btrfs-scrub.service" /etc/systemd/system/
@@ -141,7 +144,6 @@ sudo systemctl enable --now btrfs-scrub.timer
 
 echo "* Installng firejail"
 sudo pacman -S --needed --noconfirm firejail
-[ -f usr/bin/yay ] && yay -S --needed --noconfirm firejail-handler-extra firejail-handler-http
 [ ! -d "$HOME/.config/firejail" ] && mkdir -p "$HOME/.config/firejail"
 cp "$BASEDIR/settings/firejail/git.local" "$HOME/.config/firejail/git.local"
 cp "$BASEDIR/settings/firejail/ssh.local" "$HOME/.config/firejail/ssh.local"
@@ -196,7 +198,7 @@ sudo systemctl enable --now pacman-sync.timer
 if [ $FLATPAK_INSTALLED -eq 1 ]; then
 
   HUBS=$(flatpak remotes | cut -f 1 | grep ^flathub$)
-  if [ ! -z "$HUBS" ]; then 
+  if [ ! -z "$HUBS" ]; then
   	sudo flatpak remote-delete flathub
   fi
   sudo flatpak remote-add --if-not-exists --subset=verified flathub-verified https://dl.flathub.org/repo
