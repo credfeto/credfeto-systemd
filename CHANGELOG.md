@@ -13,6 +13,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 ### Fixed
 - Fixed missing trailing newlines in units/auto-update scripts
 - Removed tracked .idea/.gitignore file that was already in .gitignore
+- Use sudo when removing root-owned sysctl config files installed by the install script
 ### Changed
 - Refactored install script into named functions for readability and easier future extraction into separate install.d/ scripts
 ### Removed
