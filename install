@@ -58,11 +58,11 @@ harden_system() {
     sudo cp "$BASEDIR/settings/sysctl/kernel_modules.conf" /etc/sysctl.d/kernel_modules.conf
 
     sudo cp "$BASEDIR/settings/sysctl/unprivileged_userns_clone.conf" /etc/sysctl.d/unprivileged_userns_clone.conf
-    [ "$DOCKER_INSTALLED" = 1 ] && rm /etc/sysctl.d/unprivileged_userns_clone.conf
-    [ "$INCUS_INSTALLED" = 1 ] && rm /etc/sysctl.d/unprivileged_userns_clone.conf
+    [ "$DOCKER_INSTALLED" = 1 ] && sudo rm /etc/sysctl.d/unprivileged_userns_clone.conf
+    [ "$INCUS_INSTALLED" = 1 ] && sudo rm /etc/sysctl.d/unprivileged_userns_clone.conf
 
     sudo cp "$BASEDIR/settings/sysctl/kexec.conf" /etc/sysctl.d/kexec.conf
-    [ "$ZOOM_INSTALLED" = 1 ] && rm /etc/sysctl.d/kexec.conf
+    [ "$ZOOM_INSTALLED" = 1 ] && sudo rm /etc/sysctl.d/kexec.conf
 }
 
 install_pacman_hooks() {
