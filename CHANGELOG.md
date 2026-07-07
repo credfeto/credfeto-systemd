@@ -10,6 +10,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 ### Security
 ### Added
 - Added .ai-instructions and ai/local/index.md from cs-template standard
+- Local firejail override for shellcheck to allow bats/pre-commit test fixtures in /run/user/<uid> and /tmp
 ### Fixed
 - Fixed missing trailing newlines in units/auto-update scripts
 - Removed tracked .idea/.gitignore file that was already in .gitignore

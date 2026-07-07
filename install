@@ -169,6 +169,7 @@ install_firejail() {
     sudo pacman -S --needed --noconfirm firejail
     [ ! -d "$HOME/.config/firejail" ] && mkdir -p "$HOME/.config/firejail"
     cp "$BASEDIR/settings/firejail/git.local" "$HOME/.config/firejail/git.local"
+    cp "$BASEDIR/settings/firejail/shellcheck.local" "$HOME/.config/firejail/shellcheck.local"
     cp "$BASEDIR/settings/firejail/ssh.local" "$HOME/.config/firejail/ssh.local"
 }
 
