@@ -1,0 +1,7 @@
+# Let firejail-wrapped shellcheck see test fixtures created by bats/pre-commit.
+# See https://github.com/credfeto/credfeto-global-pre-commit/issues/164 (and #166):
+# the stock profile hides /run/user/<uid> via "blacklist ${RUNUSER}" and /tmp via
+# "private-tmp". A plain whitelist cannot override a blacklist, so noblacklist is
+# required, and private-tmp must be ignored (whitelisting has no effect on it).
+noblacklist ${RUNUSER}
+ignore private-tmp
