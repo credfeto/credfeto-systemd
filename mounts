@@ -37,9 +37,8 @@ UUID=83618f3e-4be3-48c6-a100-2c6a59ac2ef7       /cache                  btrfs   
 UUID=83618f3e-4be3-48c6-a100-2c6a59ac2ef7       /data                   btrfs           nodev,noexec,nosuid,rw,noatime,compress-force=zstd:15,autodefrag,ssd,space_cache=v2,subvol=/@data        0 0
 
 #ID 264 gen 1732 top level 5 path @cache
-#ID 265 gen 1732 top level 5 path @data 
+#ID 265 gen 1732 top level 5 path @data
 
 
 # /dev/sda1
 UUID=4711-B1C1                                  /boot                   vfat            nodev,noexec,nosuid,rw,noatime,uid=0,fmask=0077,dmask=0077,codepage=437,iocharset=ascii,shortname=mixed,utf8,errors=remount-ro  0 2
-

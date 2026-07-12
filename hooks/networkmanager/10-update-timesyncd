@@ -1,7 +1,6 @@
 #!/bin/sh
 
 [ -z "$CONNECTION_UUID" ] && exit 0
-INTERFACE="$1"
 ACTION="$2"
 
 case $ACTION in
