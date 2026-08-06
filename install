@@ -155,9 +155,15 @@ harden_ssh() {
     sudo cp "$BASEDIR/settings/sshd/12_LogLevel.conf" /etc/ssh/sshd_config.d/12_LogLevel.conf
     sudo cp "$BASEDIR/settings/sshd/13_TCPKeepAlive.conf" /etc/ssh/sshd_config.d/13_TCPKeepAlive.conf
 
+    info "Installing curl for key server AuthorizedKeysCommand"
+    sudo pacman -S --needed --noconfirm curl
+
+    HOSTNAME_SHORT="$(hostname -s)"
+    [ -n "$HOSTNAME_SHORT" ] || die "Unable to determine hostname for key server AuthorizedKeysCommand config"
+
     info "Rendering key server AuthorizedKeysCommand config"
     sudo tee /etc/ssh/sshd_config.d/14_KeyServer.conf > /dev/null <<EOF
-AuthorizedKeysCommand /usr/bin/curl -s https://keys.markridgwell.com/keys/$(hostname -s)/%u
+AuthorizedKeysCommand /usr/bin/curl -s https://keys.markridgwell.com/keys/$HOSTNAME_SHORT/%u
 AuthorizedKeysCommandUser nobody
 EOF
 }
