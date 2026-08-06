@@ -163,7 +163,7 @@ harden_ssh() {
 
     info "Rendering key server AuthorizedKeysCommand config"
     sudo tee /etc/ssh/sshd_config.d/14_KeyServer.conf > /dev/null <<EOF
-AuthorizedKeysCommand /usr/bin/curl -s https://keys.markridgwell.com/keys/$HOSTNAME_SHORT/%u
+AuthorizedKeysCommand /usr/bin/curl -sf --connect-timeout 5 --max-time 10 https://keys.markridgwell.com/keys/$HOSTNAME_SHORT/%u
 AuthorizedKeysCommandUser nobody
 EOF
 }
