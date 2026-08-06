@@ -156,7 +156,10 @@ harden_ssh() {
     sudo cp "$BASEDIR/settings/sshd/13_TCPKeepAlive.conf" /etc/ssh/sshd_config.d/13_TCPKeepAlive.conf
 
     info "Rendering key server AuthorizedKeysCommand config"
-    printf 'AuthorizedKeysCommand /usr/bin/curl -s https://keys.markridgwell.com/keys/%s/%%u\nAuthorizedKeysCommandUser nobody\n' "$(hostname -s)" | sudo tee /etc/ssh/sshd_config.d/14_KeyServer.conf > /dev/null
+    sudo tee /etc/ssh/sshd_config.d/14_KeyServer.conf > /dev/null <<EOF
+AuthorizedKeysCommand /usr/bin/curl -s https://keys.markridgwell.com/keys/$(hostname -s)/%u
+AuthorizedKeysCommandUser nobody
+EOF
 }
 
 install_btrfs_scrub() {
