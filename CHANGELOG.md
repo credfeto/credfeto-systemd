@@ -14,7 +14,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 ### Added
 - Added .ai-instructions and ai/local/index.md from cs-template standard
 - Local firejail override for shellcheck to allow bats/pre-commit test fixtures in /run/user/<uid> and /tmp
-- Render settings/sshd/14_KeyServer.conf at install time with the per-machine hostname baked in, enabling AuthorizedKeysCommand lookups against the central key server
+- Render /etc/ssh/sshd_config.d/14_KeyServer.conf at install time with the per-machine hostname baked in, enabling AuthorizedKeysCommand lookups against the central key server
 ### Fixed
 - Fixed missing trailing newlines in units/auto-update scripts
 - Removed tracked .idea/.gitignore file that was already in .gitignore
