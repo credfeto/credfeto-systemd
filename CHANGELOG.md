@@ -19,6 +19,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Fixed missing trailing newlines in units/auto-update scripts
 - Removed tracked .idea/.gitignore file that was already in .gitignore
 - Use sudo when removing root-owned sysctl config files installed by the install script
+- Fixed install script failing with "hostname: not found" on Arch by using hostnamectl --static instead of the hostname command, which also preserves the full configured hostname (e.g. local domain suffix) instead of truncating it
 ### Changed
 - Refactored install script into named functions for readability and easier future extraction into separate install.d/ scripts
 ### Deprecated

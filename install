@@ -158,12 +158,12 @@ harden_ssh() {
     info "Installing curl for key server AuthorizedKeysCommand"
     sudo pacman -S --needed --noconfirm curl
 
-    HOSTNAME_SHORT="$(hostname -s)"
-    [ -n "$HOSTNAME_SHORT" ] || die "Unable to determine hostname for key server AuthorizedKeysCommand config"
+    HOSTNAME_VALUE="$(hostnamectl --static)"
+    [ -n "$HOSTNAME_VALUE" ] || die "Unable to determine hostname for key server AuthorizedKeysCommand config"
 
     info "Rendering key server AuthorizedKeysCommand config"
     sudo tee /etc/ssh/sshd_config.d/14_KeyServer.conf > /dev/null <<EOF
-AuthorizedKeysCommand /usr/bin/curl -sf --connect-timeout 5 --max-time 10 https://keys.markridgwell.com/keys/$HOSTNAME_SHORT/%u
+AuthorizedKeysCommand /usr/bin/curl -sf --connect-timeout 5 --max-time 10 https://keys.markridgwell.com/keys/$HOSTNAME_VALUE/%u
 AuthorizedKeysCommandUser nobody
 EOF
 }
