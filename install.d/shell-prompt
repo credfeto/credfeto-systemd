@@ -1,0 +1,56 @@
+#! /bin/sh
+
+SCRIPTDIR="$(dirname "$(readlink -f "$0")")"
+BASEDIR="$(dirname "$SCRIPTDIR")"
+
+# shellcheck source=../lib/common disable=SC1091
+. "$BASEDIR/lib/common"
+
+install_shell_prompt() {
+    info "Installing Starship prompt"
+    sudo pacman -S --needed --noconfirm starship
+
+    info "Deploying Starship theme"
+    sudo cp "$BASEDIR/settings/starship/starship.toml" /etc/starship.toml
+
+    if grep -qF "# BEGIN credfeto-systemd starship" /etc/bash.bashrc 2>/dev/null; then
+        info "Starship block already present in /etc/bash.bashrc, skipping"
+    else
+        info "Enabling Starship prompt in /etc/bash.bashrc"
+        sudo tee -a /etc/bash.bashrc > /dev/null << 'STARSHIP_BLOCK'
+# BEGIN credfeto-systemd starship
+if command -v starship >/dev/null 2>&1; then
+    # Resolve the real home directory from the effective UID rather than
+    # $HOME - `sudo -s`/`sudo bash` (unlike `sudo -i`/`su -`) does not reset
+    # HOME on Arch's default sudoers, so a root shell reached that way would
+    # otherwise check the invoking user's config instead of root's, silently
+    # losing the distinct root styling this block exists to guarantee.
+    _starship_home=$(getent passwd "$(id -u)" 2>/dev/null | cut -d: -f6)
+    _starship_config_dir="${XDG_CONFIG_HOME:-${_starship_home:-$HOME}/.config}"
+    # Only set/keep the system default when the user has no config of their
+    # own - starship's own unset-vs-set precedence is what actually governs
+    # the per-user override, so this must not clobber it, or
+    # ~/.config/starship.toml would be silently ignored.
+    # _STARSHIP_DEFAULTED marks a default *this block* set (as opposed to one
+    # set upstream, e.g. via SSH env forwarding, which is left alone) so a
+    # config created after this variable was already exported into a parent
+    # shell is still picked up by every new shell, not just a fresh login.
+    if [ -z "${STARSHIP_CONFIG:-}" ] || [ -n "${_STARSHIP_DEFAULTED:-}" ]; then
+        if [ -f "${_starship_config_dir}/starship.toml" ]; then
+            unset STARSHIP_CONFIG _STARSHIP_DEFAULTED
+        else
+            export STARSHIP_CONFIG=/etc/starship.toml
+            export _STARSHIP_DEFAULTED=1
+        fi
+    fi
+    unset _starship_home _starship_config_dir
+    eval "$(starship init bash)"
+fi
+# END credfeto-systemd starship
+STARSHIP_BLOCK
+    fi
+
+    success "Starship prompt installed"
+}
+
+install_shell_prompt

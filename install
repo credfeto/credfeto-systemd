@@ -1,19 +1,9 @@
 #! /bin/sh
 
-die() {
-    printf '\n\033[31m✗\033[0m %s\n' "$*" >&2
-    exit 1
-}
-
-success() {
-    printf '\n\033[32m✓\033[0m %s\n' "$*"
-}
-
-info() {
-    printf '\n\033[32m→\033[0m %s\n' "$*"
-}
-
 BASEDIR="$(dirname "$(readlink -f "$0")")"
+
+# shellcheck source=lib/common disable=SC1091
+. "$BASEDIR/lib/common"
 
 DOCKER_INSTALLED=0
 INCUS_INSTALLED=0
@@ -246,5 +236,6 @@ install_btrfs_scrub
 install_firejail
 install_fail2ban
 enable_services
+"$BASEDIR/install.d/shell-prompt" || die "install.d/shell-prompt failed"
 configure_flatpak
 success "Done"
