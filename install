@@ -236,5 +236,6 @@ install_btrfs_scrub
 install_firejail
 install_fail2ban
 enable_services
+"$BASEDIR/install.d/shell-prompt" || die "install.d/shell-prompt failed"
 configure_flatpak
 success "Done"
