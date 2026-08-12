@@ -1,8 +1,4 @@
-# shellcheck shell=sh disable=SC2034
-# SC2034 (unused variable) is suppressed file-wide: the install-state flags
-# below are declared here for install.d/* scripts that source this file, not
-# for use within this file itself, so shellcheck's single-file analysis can't
-# see their consumers.
+# shellcheck shell=sh
 
 die() {
     printf '\n\033[31m✗\033[0m %s\n' "$*" >&2
@@ -22,20 +18,33 @@ info() {
 # sees correct values without `install` having run first. Written as `if`
 # blocks rather than trailing `[ cond ] && VAR=1` so this file's own source
 # exit status stays 0 regardless of which flags end up set.
+#
+# Each is consumed by install.d/* scripts that source this file, not by
+# lib/common itself, so shellcheck's single-file analysis can't see the
+# consumer; disabled per-declaration (not file-wide) so a genuinely unused
+# variable added later in this file still gets caught.
+# shellcheck disable=SC2034
 DOCKER_INSTALLED=0
+# shellcheck disable=SC2034
 INCUS_INSTALLED=0
+# shellcheck disable=SC2034
 FLATPAK_INSTALLED=0
+# shellcheck disable=SC2034
 ZOOM_INSTALLED=0
 
 if [ -f /usr/bin/docker ]; then
+    # shellcheck disable=SC2034
     DOCKER_INSTALLED=1
 fi
 if [ -f /usr/bin/incus ]; then
+    # shellcheck disable=SC2034
     INCUS_INSTALLED=1
 fi
 if [ -f /usr/bin/flatpak ]; then
+    # shellcheck disable=SC2034
     FLATPAK_INSTALLED=1
 fi
 if [ -f /usr/bin/zoom ]; then
+    # shellcheck disable=SC2034
     ZOOM_INSTALLED=1
 fi
