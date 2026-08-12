@@ -17,3 +17,4 @@ This is an index of local instructions that apply to just this project.
 | File | Load When | Covers |
 | --- | --- | --- |
 | [arch-packages.instructions.md](arch-packages.instructions.md) | Any install script or package management work is present | AUR helper prohibition, allowed package sources, removal steps |
+| [install-structure.instructions.md](install-structure.instructions.md) | Any work touches `install`, `install.d/`, or `lib/common` | `install.d/` + `lib/common` pattern, script shape, naming convention, calling convention, install-state flags |

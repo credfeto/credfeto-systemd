@@ -1,0 +1,18 @@
+#! /bin/sh
+
+SCRIPTDIR="$(dirname "$(readlink -f "$0")")"
+BASEDIR="$(dirname "$SCRIPTDIR")"
+
+# shellcheck source=../lib/common disable=SC1091
+. "$BASEDIR/lib/common"
+
+install_firejail() {
+    info "Installing firejail"
+    sudo pacman -S --needed --noconfirm firejail
+    [ ! -d "$HOME/.config/firejail" ] && mkdir -p "$HOME/.config/firejail"
+    cp "$BASEDIR/settings/firejail/git.local" "$HOME/.config/firejail/git.local"
+    cp "$BASEDIR/settings/firejail/shellcheck.local" "$HOME/.config/firejail/shellcheck.local"
+    cp "$BASEDIR/settings/firejail/ssh.local" "$HOME/.config/firejail/ssh.local"
+}
+
+install_firejail

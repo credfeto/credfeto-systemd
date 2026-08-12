@@ -23,6 +23,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Fixed install script failing with "hostname: not found" on Arch by using hostnamectl --static instead of the hostname command, which also preserves the full configured hostname (e.g. local domain suffix) instead of truncating it
 ### Changed
 - Refactored install script into named functions for readability and easier future extraction into separate install.d/ scripts
+- Split the monolithic install script into standalone install.d/ scripts sharing lib/common, so each installation step can be run and understood independently
 ### Deprecated
 ### Removed
 - Removed yay and paru AUR helpers from install script; direct AUR package installs are prohibited

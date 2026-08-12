@@ -1,0 +1,35 @@
+#! /bin/sh
+
+SCRIPTDIR="$(dirname "$(readlink -f "$0")")"
+BASEDIR="$(dirname "$SCRIPTDIR")"
+
+# shellcheck source=../lib/common disable=SC1091
+. "$BASEDIR/lib/common"
+
+install_security_tools() {
+    info "Installing pkgstats"
+    sudo pacman -S --needed --noconfirm pkgstats
+    sudo systemctl enable --now pkgstats.timer
+
+    info "Enabling auditd"
+    sudo cp "$BASEDIR/settings/audit/rules/00_passwd.rules" /etc/audit/rules.d
+    sudo cp "$BASEDIR/settings/audit/rules/01_security.rules" /etc/audit/rules.d
+    sudo cp "$BASEDIR/settings/audit/rules/02_audit-config.rules" /etc/audit/rules.d
+    sudo systemctl enable --now auditd
+
+    info "Enabling usbguard"
+    sudo pacman -S --needed --noconfirm usbguard
+    sudo bash -c "[ ! -f /etc/usbguard/rules.d/00_base.conf ] && usbguard generate-policy > /etc/usbguard/rules.d/00_base.conf"
+    sudo cp "$BASEDIR/settings/usbguard/01_allow_keyboard_and_mouse.conf" /etc/usbguard/rules.d/01_allow_keyboard_and_mouse.conf
+    sudo cp "$BASEDIR/settings/usbguard/02_mass_storage.conf" /etc/usbguard/rules.d/02_mass_storage.conf
+    sudo bash -c "chmod 0600 /etc/usbguard/rules.d/*"
+    sudo systemctl enable --now usbguard
+
+    info "Enabling lynis and chkrootkit"
+    sudo pacman -S --needed --noconfirm lynis chkrootkit
+
+    info "Installing arch-audit"
+    sudo pacman -S --needed --noconfirm arch-audit
+}
+
+install_security_tools

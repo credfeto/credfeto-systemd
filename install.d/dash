@@ -1,0 +1,14 @@
+#! /bin/sh
+
+SCRIPTDIR="$(dirname "$(readlink -f "$0")")"
+BASEDIR="$(dirname "$SCRIPTDIR")"
+
+# shellcheck source=../lib/common disable=SC1091
+. "$BASEDIR/lib/common"
+
+install_dash() {
+    info "Installing dash"
+    sudo pacman -S --needed --noconfirm dash dashbinsh checkbashisms
+}
+
+install_dash

@@ -1,0 +1,16 @@
+#! /bin/sh
+
+SCRIPTDIR="$(dirname "$(readlink -f "$0")")"
+BASEDIR="$(dirname "$SCRIPTDIR")"
+
+# shellcheck source=../lib/common disable=SC1091
+. "$BASEDIR/lib/common"
+
+install_pacman_hooks() {
+    info "Installing Pacman hooks"
+    [ ! -d /etc/pacman.d/hooks ] && sudo mkdir -p /etc/pacman.d/hooks
+    sudo cp "$BASEDIR/hooks/pacman/pacman-cache-cleanup.hook" /etc/pacman.d/hooks/pacman-cache-cleanup.hook
+    sudo cp "$BASEDIR/hooks/pacman/spectacle-remove-firejail-wrapper.hook" /etc/pacman.d/hooks/spectacle-remove-firejail-wrapper.hook
+}
+
+install_pacman_hooks

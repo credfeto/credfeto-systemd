@@ -1,0 +1,15 @@
+#! /bin/sh
+
+SCRIPTDIR="$(dirname "$(readlink -f "$0")")"
+BASEDIR="$(dirname "$SCRIPTDIR")"
+
+# shellcheck source=../lib/common disable=SC1091
+. "$BASEDIR/lib/common"
+
+remove_aur_helpers() {
+    info "Removing AUR helpers"
+    pacman -Qq yay 2>/dev/null && sudo pacman -Rns --noconfirm yay
+    pacman -Qq paru 2>/dev/null && sudo pacman -Rns --noconfirm paru
+}
+
+remove_aur_helpers
