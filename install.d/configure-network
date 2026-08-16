@@ -1,0 +1,45 @@
+#! /bin/sh
+
+SCRIPTDIR="$(dirname "$(readlink -f "$0")")"
+BASEDIR="$(dirname "$SCRIPTDIR")"
+
+# shellcheck source=../lib/common disable=SC1091
+. "$BASEDIR/lib/common"
+
+configure_network() {
+    info "Enabling IPv6 privacy"
+    sudo cp "$BASEDIR/settings/networkmanager/ip6-privacy.conf" /etc/NetworkManager/conf.d/ip6-privacy.conf
+
+    info "Enabling MAC privacy"
+    [ "$INCUS_INSTALLED" = 1 ] || sudo cp "$BASEDIR/settings/networkmanager/wifi_rand_mac.conf" /etc/NetworkManager/conf.d/wifi_rand_mac.conf
+
+    info "Configuring network availability check"
+    sudo cp "$BASEDIR/settings/networkmanager/connectivity-test.conf" /etc/NetworkManager/conf.d/connectivity-test.conf
+
+    info "Configuring network manager DNS"
+    sudo cp "$BASEDIR/settings/networkmanager/dns.conf" /etc/NetworkManager/conf.d/dns.conf
+
+    info "Installing dnsmasq"
+    sudo pacman -S --needed --noconfirm dnsmasq
+
+    info "Configuring dnsmasq"
+    sudo cp "$BASEDIR/settings/dnsmasq/00-caching.conf" /etc/NetworkManager/dnsmasq.d/00-caching.conf
+    sudo cp "$BASEDIR/settings/dnsmasq/01-async-logs.conf" /etc/NetworkManager/dnsmasq.d/01-async-logs.conf
+    sudo cp "$BASEDIR/settings/dnsmasq/02-netflix.conf" /etc/NetworkManager/dnsmasq.d/02-netflix.conf
+    sudo cp "$BASEDIR/settings/dnsmasq/03-allow-doh.conf" /etc/NetworkManager/dnsmasq.d/03-allow-doh.conf
+
+    info "Installing Network Manager hook"
+    sudo cp "$BASEDIR/hooks/networkmanager/10-update-timesyncd" /etc/NetworkManager/dispatcher.d/10-update-timesyncd
+
+    info "Installing firewalld"
+    sudo pacman -S --needed --noconfirm firewalld
+    sudo systemctl enable --now firewalld
+    sudo firewall-cmd --permanent --add-rich-rule='rule family="ipv4" source address="10.0.0.0/8" port protocol="tcp" port="22" accept'
+    sudo firewall-cmd --permanent --add-rich-rule='rule family="ipv4" source address="192.168.0.0/16" port protocol="tcp" port="22" accept'
+    sudo firewall-cmd --permanent --add-rich-rule='rule family="ipv4" source address="172.16.0.0/20" port protocol="tcp" port="22" accept'
+
+    info "Reloading network manager config"
+    sudo nmcli general reload
+}
+
+configure_network
