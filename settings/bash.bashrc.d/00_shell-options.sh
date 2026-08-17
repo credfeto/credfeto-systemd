@@ -37,7 +37,12 @@ shopt -s checkwinsize
 
 # Causes bash to append to history instead of overwriting it so if you start a new terminal, you have old session history
 shopt -s histappend
-PROMPT_COMMAND='history -a'
+# Append rather than overwrite: this file is sourced from the
+# /etc/bash.bashrc.d loop, which runs after install.d/shell-prompt's Starship
+# block has already hooked PROMPT_COMMAND to redraw the prompt each command.
+# A plain assignment here would silently wipe that hook, leaving the prompt
+# static (no colours) instead of erroring - so append instead.
+PROMPT_COMMAND+=('history -a')
 
 # Allow ctrl-S for history navigation (with ctrl-R)
 stty -ixon
