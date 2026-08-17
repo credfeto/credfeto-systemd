@@ -18,3 +18,4 @@ This is an index of local instructions that apply to just this project.
 | --- | --- | --- |
 | [arch-packages.instructions.md](arch-packages.instructions.md) | Any install script or package management work is present | AUR helper prohibition, allowed package sources, removal steps |
 | [install-structure.instructions.md](install-structure.instructions.md) | Any work touches `install`, `install.d/`, or `lib/common` | `install.d/` + `lib/common` pattern, script shape, naming convention, calling convention, install-state flags |
+| [shell-config.instructions.md](shell-config.instructions.md) | Any work touches `settings/shell-env/`, `settings/bash.bashrc.d/`, or `install.d/shell-environment` | Origin (partial live-paste port of a sibling repo's bashrc), profile.d vs bash.bashrc.d deployment tiers, file naming/load order, adding a new section, known AUR-helper policy exception |

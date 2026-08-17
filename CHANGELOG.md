@@ -16,6 +16,7 @@ Please ADD ALL Changes to the UNRELEASED SECTION and not a specific release
 - Local firejail override for shellcheck to allow bats/pre-commit test fixtures in /run/user/<uid> and /tmp
 - Render /etc/ssh/sshd_config.d/14_KeyServer.conf at install time with the per-machine hostname baked in, enabling AuthorizedKeysCommand lookups against the central key server
 - Added a system-wide coloured Starship bash prompt, giving every interactive shell a themed prompt with visually distinct root styling, without overriding a user's own Starship config
+- Added a system-wide shell environment (env vars, aliases, functions) deployed via a new install.d/shell-environment step, sourced from /etc/profile.d and a new /etc/bash.bashrc.d/, so every user's interactive shell and non-interactive tooling gets the same XDG-aware environment, ll/ls aliases, and an update() helper that runs this repo's own install script
 ### Fixed
 - Fixed missing trailing newlines in units/auto-update scripts
 - Removed tracked .idea/.gitignore file that was already in .gitignore

@@ -49,6 +49,7 @@ Examples already applied:
 | `install_fail2ban` | `fail2ban` |
 | `enable_services` | `enable-services` |
 | `configure_flatpak` | `configure-flatpak` |
+| `install_shell_environment` | `shell-environment` |
 
 ## Calling Convention in `install`
 
