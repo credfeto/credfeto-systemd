@@ -1,0 +1,132 @@
+#!/bin/sh
+
+die() {
+    printf '\n\033[31m✗\033[0m %s\n' "$*" >&2
+    exit 1
+}
+
+success() {
+    printf '\n\033[32m✓\033[0m %s\n' "$*"
+}
+
+warn() {
+    printf '\n\033[33m⚠\033[0m %s\n' "$*" >&2
+}
+
+info() {
+    printf '\n\033[32m→\033[0m %s\n' "$*"
+}
+
+HOOKSPATH_RESET_WHITELIST_SKIP="funfair-treasury-reporting"
+
+is_hookspath_reset_skipped() {
+    repo_name=$(basename "$1")
+    for skipped in $HOOKSPATH_RESET_WHITELIST_SKIP; do
+        if [ "$repo_name" = "$skipped" ]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+SWITCH_TO_MAIN=0
+
+for arg in "$@"; do
+    case "$arg" in
+        --switch-to-main)
+            SWITCH_TO_MAIN=1
+            ;;
+        *)
+            die "Unknown argument: $arg"
+            ;;
+    esac
+done
+
+REPO_LIST=$(mktemp)
+trap 'rm -f "$REPO_LIST"' EXIT
+
+find "$(pwd)"/* -name '*.git' -print | sed "s|/.git$||" | sort -u | grep -v .cache > "$REPO_LIST"
+
+FETCHED_COUNT=0
+SKIPPED_COUNT=0
+SKIPPED_REPOS=""
+
+while IFS= read -r line
+do
+  CURRENT_DIR=$line
+
+  info "Retrieving ${CURRENT_DIR}..."
+  if is_hookspath_reset_skipped "$CURRENT_DIR"
+  then
+    info "Skipping core.hookspath reset for ${CURRENT_DIR} (whitelisted)."
+  else
+    git -C "$CURRENT_DIR" config --local --unset core.hookspath 2>/dev/null || true
+  fi
+  git -C "$CURRENT_DIR" remote get-url origin > /dev/null 2>&1 || { warn "Could not determine origin for ${CURRENT_DIR}"; SKIPPED_COUNT=$((SKIPPED_COUNT + 1)); SKIPPED_REPOS="${SKIPPED_REPOS}${CURRENT_DIR} (could not determine origin)
+"; continue; }
+  git -C "$CURRENT_DIR" fetch --prune --prune-tags > /dev/null 2>&1 || { warn "Could not fetch ${CURRENT_DIR}"; SKIPPED_COUNT=$((SKIPPED_COUNT + 1)); SKIPPED_REPOS="${SKIPPED_REPOS}${CURRENT_DIR} (could not fetch)
+"; continue; }
+  git -C "$CURRENT_DIR" remote update origin --prune > /dev/null 2>&1 || { warn "Could not update remote refs for ${CURRENT_DIR}"; SKIPPED_COUNT=$((SKIPPED_COUNT + 1)); SKIPPED_REPOS="${SKIPPED_REPOS}${CURRENT_DIR} (could not update remote refs)
+"; continue; }
+
+  REPO_STATUS=$(git -C "$CURRENT_DIR" status --porcelain 2>&1) || { warn "Could not read status for ${CURRENT_DIR}"; SKIPPED_COUNT=$((SKIPPED_COUNT + 1)); SKIPPED_REPOS="${SKIPPED_REPOS}${CURRENT_DIR} (could not read status)
+"; continue; }
+
+  if [ -z "$REPO_STATUS" ]
+  then
+    if git -C "$CURRENT_DIR" rev-parse --verify '@{upstream}' > /dev/null 2>&1
+    then
+      info "No pending changes in working folder. Rebasing..."
+      git -C "$CURRENT_DIR" rebase 2>&1 || warn "Could not rebase ${CURRENT_DIR}"
+      git -C "$CURRENT_DIR" rebase --abort > /dev/null 2>&1
+    else
+      info "No valid upstream for current branch. Skipping rebase."
+    fi
+  else
+    info "Pending changes in working folder. Skipping rebase."
+  fi
+
+  if [ "$SWITCH_TO_MAIN" = "1" ]
+  then
+    CURRENT_BRANCH=$(git -C "$CURRENT_DIR" rev-parse --abbrev-ref HEAD 2>&1) || { warn "Could not determine current branch for ${CURRENT_DIR}"; SKIPPED_COUNT=$((SKIPPED_COUNT + 1)); SKIPPED_REPOS="${SKIPPED_REPOS}${CURRENT_DIR} (could not determine current branch)
+"; continue; }
+    DEFAULT_BRANCH=$(git -C "$CURRENT_DIR" symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/origin/||')
+
+    if [ -z "$DEFAULT_BRANCH" ]
+    then
+      DEFAULT_BRANCH="main"
+    fi
+
+    if [ "$CURRENT_BRANCH" != "$DEFAULT_BRANCH" ]
+    then
+      if [ -z "$REPO_STATUS" ]
+      then
+        info "Switching to ${DEFAULT_BRANCH} branch..."
+        if git -C "$CURRENT_DIR" checkout "$DEFAULT_BRANCH" 2>&1
+        then
+          if git -C "$CURRENT_DIR" rev-parse --verify '@{upstream}' > /dev/null 2>&1
+          then
+            git -C "$CURRENT_DIR" rebase 2>&1 || warn "Could not rebase ${DEFAULT_BRANCH} in ${CURRENT_DIR}"
+            git -C "$CURRENT_DIR" rebase --abort > /dev/null 2>&1
+          else
+            info "No valid upstream for ${DEFAULT_BRANCH}. Skipping rebase."
+          fi
+        else
+          warn "Could not switch to ${DEFAULT_BRANCH} in ${CURRENT_DIR}"
+        fi
+      else
+        info "Pending changes in working folder. Skipping switch to ${DEFAULT_BRANCH}."
+      fi
+    fi
+  fi
+
+  FETCHED_COUNT=$((FETCHED_COUNT + 1))
+  success "Done with ${CURRENT_DIR}"
+done < "$REPO_LIST"
+
+info "${FETCHED_COUNT} repo(s) fetched, ${SKIPPED_COUNT} repo(s) skipped"
+if [ "$SKIPPED_COUNT" -gt 0 ]
+then
+  warn "Skipped repositories:"
+  printf '%s' "$SKIPPED_REPOS" >&2
+fi

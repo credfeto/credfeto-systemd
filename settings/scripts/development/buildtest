@@ -1,0 +1,274 @@
+#! /bin/sh
+# Sourced from https://github.com/credfeto/scripts/blob/main/development/buildtest
+
+die() {
+    printf '\n\033[31m✗\033[0m %s\n' "$*" >&2
+    exit 1
+}
+
+cleanup() {
+    [ "$RESTORE" = "1" ] && git checkout "$RULESET_FILE"
+}
+trap cleanup EXIT
+
+info() {
+    printf '\n\033[32m→\033[0m %s\n' "$*"
+}
+
+# Returns true (0) when running inside a Claude Code Bash-tool session.
+# Claude Code sets CLAUDECODE=1 in every shell it spawns via the Bash tool;
+# that value is inherited by subprocesses (e.g. git hooks).
+# Source: https://docs.anthropic.com/en/docs/claude-code/settings#environment-variables
+is_ai_agent() {
+    [ "${CLAUDECODE}" = "1" ]
+}
+
+# Returns 0 if $1 (command name) and $2 (package ID) match the same row in local or global dotnet tool list.
+dotnet_tool_installed() {
+    dotnet tool list 2>/dev/null \
+        | awk -v cmd="$1" -v pkg="$2" \
+            'tolower($3)==tolower(cmd) && tolower($1)==tolower(pkg){found=1} END{exit !found}' \
+        && return 0
+    dotnet tool list --global 2>/dev/null \
+        | awk -v cmd="$1" -v pkg="$2" \
+            'tolower($3)==tolower(cmd) && tolower($1)==tolower(pkg){found=1} END{exit !found}' \
+        && return 0
+    return 1
+}
+
+require_dotnet_tool() {
+    dotnet_tool_installed "$1" "$2" && return 0
+    if is_ai_agent; then
+        _repo=$(git rev-parse --show-toplevel 2>/dev/null)
+        if [ -n "$_repo" ] && { [ -f "$_repo/.config/dotnet-tools.json" ] || [ -f "$_repo/dotnet-tools.json" ]; }; then
+            die "dotnet-tools.json exists in this repository but $2 ($1) is not installed — add $2 to the manifest and run 'dotnet tool restore'. Do not install it directly."
+        fi
+        die "Required package ($2) is not installed so cannot run $1.  Operator needs to provide this to the environment.  Do not install it yourself"
+    fi
+    die "$1 ($2) dotnet tool is not installed"
+}
+
+CLEAR="http-cache"
+
+CSPROJ=$(find "$PWD" -type f -iname "*.csproj" | head -1)
+[ -z "$CSPROJ" ] && { info "No .csproj files found — skipping"; exit 0; }
+
+SOLUTION=$(find "$PWD" -type f -iname "*.sln" | head -1)
+[ -z "$SOLUTION" ] && SOLUTION=$(find "$PWD" -type f -iname "*.slnx" | head -1)
+[ -z "$SOLUTION" ] && { info "No solution file found — skipping"; exit 0; }
+
+SOURCE_DIR=$(dirname "$SOLUTION")
+[ -z "$SOURCE_DIR" ] && die "No Solution dir found in $SOURCE_DIR"
+
+# Resolved before the cd below so a relative $0 is not re-resolved against the
+# wrong working directory.
+BENCH_AFFECTED_SCRIPT="$(dirname "$(readlink -f "$0")")/benchmark-test-affected"
+LATEST_FRAMEWORK_SCRIPT="$(dirname "$(readlink -f "$0")")/latest-target-framework"
+DACPAC_ONLY_SCRIPT="$(dirname "$(readlink -f "$0")")/dacpac-only-solution"
+
+PACK=0
+HAS_PACKED=$(grep -R "<IsPackable>true</IsPackable>" . --include "*.csproj" | head -1)
+if [ -n "$HAS_PACKED" ]; then
+  PACK=1
+fi
+
+RULESET_ADJUSTMENT_FILE=
+[ -f "$SOURCE_DIR/release.rule-settings.json" ] && RULESET_ADJUSTMENT_FILE="$SOURCE_DIR/release.rule-settings.json"
+
+info "Clearing NuGet cache ($CLEAR)..."
+dotnet nuget locals "$CLEAR" --clear || die "######## Nuget Clear $CLEAR Failed ########"
+
+info "Restoring tools..."
+dotnet tool restore || die "######## Tool Restore Failed ########"
+
+cd "$SOURCE_DIR" || die "Could not change to $SOURCE_DIR"
+
+RULESET_TYPE=
+RULESET_FILE=
+if [ -f "$SOURCE_DIR/CodeAnalysis.ruleset" ]; then
+  RULESET_TYPE=ruleset
+  RULESET_FILE="$SOURCE_DIR/CodeAnalysis.ruleset"
+fi
+
+if [ -f "$SOURCE_DIR/../.globalconfig" ]; then
+  RULESET_TYPE=globalconfig
+  RULESET_FILE="$(readlink -f "$SOURCE_DIR/../.globalconfig")"
+fi
+
+RESTORE=0
+if [ -n "$RULESET_TYPE" ] && [ -f "$RULESET_ADJUSTMENT_FILE" ]; then
+  require_dotnet_tool code-analysis Credfeto.DotNet.Code.Analysis.Overrides.Cmd
+  info "Overriding $RULESET_FILE with $RULESET_ADJUSTMENT_FILE"
+  dotnet code-analysis "$RULESET_TYPE" \
+    --ruleset "$RULESET_FILE" \
+    --changes "$RULESET_ADJUSTMENT_FILE" || die "Failed to update $RULESET_FILE"
+  RESTORE=1
+fi
+
+info "Restoring..."
+dotnet restore || die "######## Restore Failed ########"
+
+info "Cleaning..."
+dotnet clean "--nowarn:MSB4241" || die "######## Clean Failed ########"
+
+info "Building..."
+dotnet build \
+  --warnaserror \
+  --configuration Release \
+  --no-restore \
+  "-p:ApiCompatGenerateSuppressionFile=true" \
+  "-p:ContinuousIntegrationBuild=true" \
+  "-p:IsProduction=false" \
+  "--nowarn:MSB4241" \
+  "-p:Optimize=true" \
+  "-p:SuppressNETCoreSdkPreviewMessage=true" \
+  "-p:Version=0.0.0.1-test" \
+  -nodeReuse:False || die "######## Build Failed ########"
+
+# Fail if the build generated or modified any ApiCompatSuppressions.xml files —
+# these indicate newly suppressed API compatibility breaks that must be reviewed,
+# staged and committed intentionally rather than silently auto-included.
+COMPAT_CHANGED=$(find "$SOURCE_DIR" -name "ApiCompatSuppressions.xml" 2>/dev/null | while IFS= read -r f; do
+    git diff --name-only -- "$f" 2>/dev/null
+    git ls-files --others --exclude-standard -- "$f" 2>/dev/null
+done)
+if [ -n "$COMPAT_CHANGED" ]; then
+    die "ApiCompatSuppressions.xml was created or modified by the build — review, stage and commit it explicitly:$(printf '\n  %s' "$COMPAT_CHANGED")"
+fi
+
+if "$DACPAC_ONLY_SCRIPT" "$SOURCE_DIR"; then
+  info "Only project in solution is a SQL Server database project (dacpac) — skipping tests, nothing testable"
+else
+  info "Testing..."
+  # Integration tests are always safe to skip in pre-commit. Every benchmark
+  # test project is always excluded here too, regardless of whether it is
+  # affected by staged changes; benchmark-test-affected below runs only the
+  # affected ones separately. "Benchmark" and "BenchMark" both appear in the
+  # wild; tracked to converge on one spelling.
+  dotnet test \
+    --configuration Release \
+    --no-restore \
+    --no-build \
+    --long-running 10 \
+    --parallel-algorithm aggressive \
+    --ignore-exit-code 8 \
+    --filter-not-namespace "*.Integration.Tests" \
+    --filter-not-namespace "*.Integration.Tests.*" \
+    --filter-not-namespace "*.Benchmark.Tests" \
+    --filter-not-namespace "*.Benchmark.Tests.*" \
+    --filter-not-namespace "*.BenchMark.Tests" \
+    --filter-not-namespace "*.BenchMark.Tests.*" \
+    "-p:ApiCompatGenerateSuppressionFile=true" \
+    "-p:ContinuousIntegrationBuild=true" \
+    "-p:IsProduction=false" \
+    "-p:Optimize=true" \
+    "-p:SuppressNETCoreSdkPreviewMessage=true" \
+    "-p:Version=0.0.0.1-test" \
+    || die "######## Tests Failed ########"
+
+  info "Determining which benchmarks are affected by staged changes..."
+  AFFECTED_SPEC=$("$BENCH_AFFECTED_SCRIPT" "$SOURCE_DIR") \
+    || die "######## Benchmark Affected Detection Failed ########"
+
+  if [ -z "$AFFECTED_SPEC" ]; then
+    info "No benchmark tests affected by staged changes — skipping benchmark test step"
+  else
+    while IFS= read -r bench_project; do
+        [ -n "$bench_project" ] || continue
+
+        # Multi-targeted benchmark projects are only run on their latest
+        # target framework; older frameworks are assumed to work.
+        set --
+        LATEST_FRAMEWORK=$("$LATEST_FRAMEWORK_SCRIPT" "$bench_project") \
+          || die "######## Latest Target Framework Detection Failed ($bench_project) ########"
+        if [ -n "$LATEST_FRAMEWORK" ]; then
+          info "Multiple target frameworks in $bench_project — testing only $LATEST_FRAMEWORK, assuming older frameworks work"
+          set -- --framework "$LATEST_FRAMEWORK"
+        fi
+
+        info "Running benchmark tests: $bench_project"
+        dotnet test "$bench_project" \
+          --configuration Release \
+          --no-restore \
+          --no-build \
+          --ignore-exit-code 8 \
+          "$@" \
+          "-p:ApiCompatGenerateSuppressionFile=false" \
+          "-p:ContinuousIntegrationBuild=true" \
+          "-p:IsProduction=true" \
+          "-p:Optimize=true" \
+          "-p:SuppressNETCoreSdkPreviewMessage=true" \
+          "-p:Version=0.0.0.1-test" \
+          || die "######## Benchmark Tests Failed ($bench_project) ########"
+    done <<AFFECTED_EOF
+$AFFECTED_SPEC
+AFFECTED_EOF
+  fi
+fi
+
+PUBLISHABLE=$(grep -Rl "<IsPublishable>true</IsPublishable>" . --include "*.csproj")
+if [ -n "$PUBLISHABLE" ]; then
+  info "Publishing..."
+  PLATFORM=$(dotnet --info 2>/dev/null | grep -E "RID:" | awk '{print $2}')
+  [ -z "$PLATFORM" ] && PLATFORM="linux-x64"
+  while IFS= read -r project; do
+    [ -f "$project" ] || continue
+
+    FRAMEWORKS=$(sed -n 's/.*<TargetFrameworks>\([^<]*\)<\/TargetFrameworks>.*/\1/p' "$project" | head -1)
+    [ -z "$FRAMEWORKS" ] && FRAMEWORKS=$(sed -n 's/.*<TargetFramework>\([^<]*\)<\/TargetFramework>.*/\1/p' "$project" | head -1)
+    [ -z "$FRAMEWORKS" ] && die "No TargetFramework or TargetFrameworks found in $project — specify a TargetFramework"
+
+    FRAMEWORKS_NL=$(printf '%s' "$FRAMEWORKS" | tr ';' '\n')
+    while IFS= read -r fw; do
+      fw=$(printf '%s' "$fw" | tr -d '[:space:]')
+      [ -z "$fw" ] && continue
+      OUTFOLDER=$(mktemp -d "${TMPDIR:-/tmp}/buildtest-publish.XXXXXXXXXX")
+      dotnet publish "$project" \
+        --no-restore \
+        --warnaserror \
+        --configuration Release \
+        --runtime "$PLATFORM" \
+        --self-contained \
+        --framework "$fw" \
+        -nodeReuse:False \
+        "-p:NoWarn=NETSDK1179%3BIL2104%3BIL3053" \
+        "-p:SuppressNETCoreSdkPreviewMessage=true" \
+        "-p:PublishSingleFile=true" \
+        "-p:PublishAot=false" \
+        "-p:PublishReadyToRun=False" \
+        "-p:PublishReadyToRunShowWarnings=True" \
+        "-p:DisableSwagger=False" \
+        "-p:TreatWarningsAsErrors=True" \
+        "-p:IncludeNativeLibrariesForSelfExtract=false" \
+        "-p:Version=0.0.0.1-test" \
+        "-p:FFPublishing=True" \
+        "-p:SolutionDir=$SOURCE_DIR/" \
+        "-p:IsProduction=false" \
+        --output "$OUTFOLDER" || die "Publish failed: $project (framework: $fw)"
+      rm -rf "$OUTFOLDER"
+    done <<FRAMEWORKS_EOF
+$FRAMEWORKS_NL
+FRAMEWORKS_EOF
+  done <<EOF
+$PUBLISHABLE
+EOF
+fi
+
+if [ "$PACK" = "1" ]; then
+  info "Packing..."
+  dotnet pack \
+    --warnaserror \
+    --configuration Release \
+    --no-restore \
+    "-p:ApiCompatGenerateSuppressionFile=true" \
+    "-p:ContinuousIntegrationBuild=true" \
+    "-p:IncludeSymbols=False" \
+    "-p:IsProduction=false" \
+    "--nowarn:MSB4241" \
+    "-p:Optimize=true" \
+    "-p:SuppressNETCoreSdkPreviewMessage=true" \
+    "-p:Version=0.0.0.1-test" \
+    -nodeReuse:False || die "######## Packing Failed ########"
+fi
+
+info "Completed"
