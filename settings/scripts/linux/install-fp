@@ -1,0 +1,32 @@
+#! /bin/sh
+
+die() {
+    printf '\n\033[31m✗\033[0m %s\n' "$*" >&2
+    exit 1
+}
+
+success() {
+    printf '\n\033[32m✓\033[0m %s\n' "$*"
+}
+
+info() {
+    printf '\n\033[32m→\033[0m %s\n' "$*"
+}
+
+PACKAGES="com.brave.Browser \
+          org.mozilla.firefox \
+          com.opera.Opera \
+          com.discordapp.Discord \
+          com.spotify.Client \
+          com.todoist.Todoist \
+          com.bitwarden.desktop \
+          org.mozilla.Thunderbird \
+          com.github.iwalton3.jellyfin-media-player \
+          com.ktechpit.whatsie"
+
+for PACKAGE in $PACKAGES; do
+  info "Installing ${PACKAGE}..."
+  flatpak install -y "$PACKAGE"
+done
+
+success "All flatpak packages installed"

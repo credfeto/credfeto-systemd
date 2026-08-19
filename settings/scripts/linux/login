@@ -1,0 +1,55 @@
+#! /bin/sh
+
+die() {
+    printf '\n\033[31m✗\033[0m %s\n' "$*" >&2
+    exit 1
+}
+
+success() {
+    printf '\n\033[32m✓\033[0m %s\n' "$*"
+}
+
+info() {
+    printf '\n\033[32m→\033[0m %s\n' "$*"
+}
+
+flatpak update -y
+flatpak uninstall --unused -y
+
+# Union of every app referenced across the old per-machine login.chromebook,
+# login.ffmr-02, and login.laptop scripts. Filtered below by what's actually
+# installed, so one script covers every machine.
+CANDIDATE_APPS="com.brave.Browser \
+                com.discordapp.Discord \
+                com.fastmail.Fastmail \
+                org.mozilla.firefox \
+                org.telegram.desktop \
+                us.zoom.Zoom \
+                org.kde.klevernotes \
+                com.chatterino.chatterino \
+                org.mozilla.Thunderbird \
+                com.spotify.Client \
+                com.todoist.Todoist \
+                com.bitwarden.desktop \
+                com.github.iwalton3.jellyfin-media-player \
+                com.ktechpit.whatsie"
+
+INSTALLED_APPS=$(flatpak list --app --columns=application)
+
+for APP in $CANDIDATE_APPS; do
+  if echo "$INSTALLED_APPS" | grep -qx "$APP"; then
+    info "Launching ${APP}..."
+    if [ "$APP" = "com.brave.Browser" ]; then
+      flatpak run com.brave.Browser --enable-feature=UseOzonePlatform --ozone-platform=wayland &
+    else
+      flatpak run "$APP" &
+    fi
+  fi
+done
+
+if command -v streamlink >/dev/null 2>&1; then
+  info "streamlink found, starting stream..."
+  stream paults_aquaescape &
+fi
+
+success "Login complete"

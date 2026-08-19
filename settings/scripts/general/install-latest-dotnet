@@ -1,0 +1,252 @@
+#! /bin/bash
+
+die() {
+    if [ -t 2 ]; then
+        printf '\n\033[31m✗\033[0m %s\n' "$*" >&2
+    else
+        printf '\n✗ %s\n' "$*" >&2
+    fi
+    exit 1
+}
+
+success() {
+    if [ -t 1 ]; then
+        printf '\n\033[32m✓\033[0m %s\n' "$*"
+    else
+        printf '\n✓ %s\n' "$*"
+    fi
+}
+
+info() {
+    if [ -t 1 ]; then
+        printf '\n\033[32m→\033[0m %s\n' "$*"
+    else
+        printf '\n→ %s\n' "$*"
+    fi
+}
+
+
+
+# args:
+# zip_path - $1
+# out_path - $2
+extract_dotnet_package() {
+    local zip_path="$1"
+    local out_path="$2"
+    local temp_out_path
+    local folders_with_version_regex='^.*/[0-9]+\.[0-9]+[^/]+/'
+    local override_non_versioned_files=false
+
+    temp_out_path="$(mktemp -d "$temporary_file_template")"
+
+    local failed=false
+    tar -xzf "$zip_path" -C "$temp_out_path" > /dev/null || failed=true
+
+    if [ "$failed" = true ]; then
+        rm -f "$zip_path" && say_verbose "Temporary archive file $zip_path was removed"
+        say_err "Extraction failed"
+    fi
+
+    find "$temp_out_path" -type f | grep -Eo "$folders_with_version_regex" | sort | copy_files_or_dirs_from_list "$temp_out_path" "$out_path" false
+    find "$temp_out_path" -type f | grep -Ev "$folders_with_version_regex" | copy_files_or_dirs_from_list "$temp_out_path" "$out_path" "$override_non_versioned_files"
+
+    rm -rf "$temp_out_path"
+    rm -f "$zip_path" && say_verbose "Temporary archive file $zip_path was removed"
+
+
+    return 0
+}
+
+# args:
+# input_files - stdin
+# root_path - $1
+# out_path - $2
+# override - $3
+copy_files_or_dirs_from_list() {
+    local root_path
+    local out_path
+    local override="$3"
+    local override_switch
+
+    root_path="$(remove_trailing_slash "$1")"
+    out_path="$(remove_trailing_slash "$2")"
+    override_switch="$(get_cp_options "$override")"
+
+    cat | uniq | while read -r file_path; do
+        local path_suffix
+        local path
+        local target
+
+        path_suffix="${file_path#"$root_path"}"
+        path="$(remove_beginning_slash "$path_suffix")"
+        target="$out_path/$path"
+
+        if [ "$override" = true ] || { [ ! -d "$target" ] && [ ! -e "$target" ]; }; then
+            sudo mkdir -p "$out_path/$(dirname "$path")"
+            if [ -d "$target" ]; then
+                sudo rm -rf "$target"
+            fi
+
+            if [ -n "$override_switch" ]; then
+                sudo cp -R "$override_switch" "$root_path/$path" "$target"
+            else
+                sudo cp -R "$root_path/$path" "$target"
+            fi
+        fi
+    done
+}
+
+# args:
+# override - $1 (boolean, true or false)
+get_cp_options() {
+    local override="$1"
+    local override_switch=""
+    local tmp_dir
+    local tmp_file
+    local tmp_file2
+
+    if [ "$override" = false ]; then
+        override_switch="-n"
+
+        # create temporary files to check if 'cp -u' is supported
+        tmp_dir="$(sudo mktemp -d)"
+        tmp_file="$tmp_dir/testfile"
+        tmp_file2="$tmp_dir/testfile2"
+
+        sudo touch "$tmp_file"
+
+        # use -u instead of -n if it's available
+        if sudo cp -u "$tmp_file" "$tmp_file2" 2>/dev/null; then
+            override_switch="-u"
+        fi
+
+        # clean up
+        sudo rm -f "$tmp_file" "$tmp_file2"
+        sudo rm -rf "$tmp_dir"
+    fi
+
+    echo "$override_switch"
+}
+
+
+# args:
+# input - $1
+remove_trailing_slash() {
+    #eval $invocation
+
+    local input="${1:-}"
+    echo "${input%/}"
+    return 0
+}
+
+# args:
+# input - $1
+remove_beginning_slash() {
+    #eval $invocation
+
+    local input="${1:-}"
+    echo "${input#/}"
+    return 0
+}
+
+say() {
+    info "dotnet-install: $*"
+}
+
+say_verbose() {
+    if [ "$verbose" = true ]; then
+        say "$*"
+    fi
+}
+
+say_err() {
+    die "$*"
+}
+
+set -e
+
+get_latest_dotnet_sdk_version() {
+    DOTNET_CHANNEL_VERSION=$1
+    [ -z "$DOTNET_CHANNEL_VERSION" ] && die "Dotnet channel version not defined"
+    curl \
+       --max-time 120 \
+       --retry 5 \
+       --retry-delay 0 \
+       --retry-max-time 600 \
+       -s \
+       -L \
+       -f \
+       --user-agent "$USER_AGENT" \
+       https://dotnetcli.blob.core.windows.net/dotnet/release-metadata/releases-index.json |
+    jq --arg v "$DOTNET_CHANNEL_VERSION" -r '
+            ."releases-index"
+            | map(select(."channel-version" | contains($v)))
+            | first(.[])
+          | ."latest-sdk"'
+}
+
+
+temporary_file_template="${TMPDIR:-/tmp}/dotnet.XXXXXXXXX"
+
+
+BASEDIR=$(dirname "$(readlink -f "$0")")
+
+[ -z "$BASEDIR" ] && die "BASEDIR Not defiled"
+
+USER_AGENT="DotnetVersionChecker/1.0.0"
+#PROXY_HOST=http://builds.dotnet.local:5554
+PROXY_HOST=https://dotnet.markridgwell.com
+
+DOWNLOAD_SOURCE=$PROXY_HOST
+
+#[ -z "$DOTNET_BUILDS_CDN" ] || PROXY_HOST=$DOTNET_BUILDS_CDN
+
+VERSIONS_TO_INSTALL="8.0 \
+                     9.0 \
+                     10.0 \
+                     11.0"
+verbose=false
+
+[ -d "/usr/share/dotnet" ] && sudo rm -fr /usr/share/dotnet
+
+sudo mkdir /usr/share/dotnet || die "Could not create dotnet folder"
+sudo chmod 755 /usr/share/dotnet || die "Could not set permissions for dotnet folder"
+
+# update to latest dotnet core
+for VERSION in $VERSIONS_TO_INSTALL; do
+
+  SDK_VERSION=$(get_latest_dotnet_sdk_version "$VERSION")
+
+  [ -z "$SDK_VERSION" ] && die "Could not determine latest SDK version for $VERSION"
+
+  TEMPORARY_FILE="$(mktemp "$temporary_file_template")"
+
+
+  info "Installing dotnet $VERSION (SDK: $SDK_VERSION)"
+
+  DOWNLOAD_URL=$DOWNLOAD_SOURCE/dotnet/Sdk/$SDK_VERSION/dotnet-sdk-$SDK_VERSION-linux-x64.tar.gz
+  curl \
+    --max-time 120 \
+    --retry 5 \
+    --retry-delay 0 \
+    --retry-max-time 600 \
+    -s \
+    -L \
+    -f \
+    --user-agent "$USER_AGENT" \
+    "$DOWNLOAD_URL" \
+    -o "$TEMPORARY_FILE" || die "Could not download: $DOWNLOAD_URL"
+
+  extract_dotnet_package "$TEMPORARY_FILE" "/usr/share/dotnet" || die "Could not install"
+
+  /usr/share/dotnet/dotnet --list-sdks
+
+done
+
+info "Install/update powershell"
+/usr/share/dotnet/dotnet tool update --local PowerShell || dotnet tool install --local PowerShell
+
+info "Restoring tools"
+/usr/share/dotnet/dotnet tool restore
+
+success "Done"

@@ -1,0 +1,35 @@
+#! /bin/sh
+
+die() {
+    printf '\n\033[31m✗\033[0m %s\n' "$*" >&2
+    exit 1
+}
+
+success() {
+    printf '\n\033[32m✓\033[0m %s\n' "$*"
+}
+
+info() {
+    printf '\n\033[32m→\033[0m %s\n' "$*"
+}
+
+local_packages=$(dotnet tool list --local | tail -n +3 | cut -f 1 -d " " | sort)
+
+for package in $(dotnet tool list --global | tail -n +3 | cut -f 1 -d " " | sort)
+do
+  info "Uninstalling global tool $package..."
+  dotnet tool uninstall --global "$package"
+
+  if echo "$local_packages" | grep -qx "$package"; then
+    info "$package is already installed locally"
+  else
+    info "Installing $package locally..."
+    dotnet tool install --local "$package"
+  fi
+done
+
+for package in $local_packages
+do
+  info "Updating $package..."
+  dotnet tool update --local "$package"
+done
