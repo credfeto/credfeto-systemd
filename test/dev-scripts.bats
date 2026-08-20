@@ -74,6 +74,13 @@ setup() {
 # ── git-environment ──────────────────────────────────────────────────────────
 
 @test "git-environment configures the expected global git identity and behaviour" {
+    setup_fake_bin gpg
+    seed_fake_output gpg <<'EOF'
+pub:u:4096:1:ABCDEF1234567890:1234567890:::u:::scESC::::::23::0:
+fpr:::::::::0123456789ABCDEF0123456789ABCDEF01234567:
+uid:u::::1234567890::HASH::Mark Ridgwell <credfeto@users.noreply.github.com>::::::::::0:
+EOF
+
     run "${GIT_ENVIRONMENT}"
     [ "${status}" -eq 0 ]
     [[ "${output}" == *"Git environment configured"* ]]
@@ -84,9 +91,28 @@ setup() {
     run git config --global user.email
     [ "${output}" = "credfeto@users.noreply.github.com" ]
 
+    run git config --global user.signingkey
+    [ "${output}" = "0123456789ABCDEF0123456789ABCDEF01234567" ]
+
+    run git config --global commit.gpgsign
+    [ "${output}" = "true" ]
+
     run git config --global pull.rebase
     [ "${output}" = "true" ]
 
     run git config --global url."git@github.com:".insteadOf
     [ "${output}" = "https://github.com/" ]
+}
+
+@test "git-environment dies rather than enabling gpgsign when no signing key is found" {
+    setup_fake_bin gpg
+    # No seeded output - fake gpg prints nothing, as real gpg would for an
+    # account with no matching key.
+
+    run "${GIT_ENVIRONMENT}"
+    [ "${status}" -eq 1 ]
+    [[ "${output}" == *"No GPG key found"* ]]
+
+    run git config --global commit.gpgsign
+    [ "${status}" -ne 0 ]
 }
