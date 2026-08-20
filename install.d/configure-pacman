@@ -19,14 +19,13 @@ PACMAN_CONF="${PACMAN_CONF:-/etc/pacman.conf}"
 ensure_pacman_option() {
     option="$1"
     options_section="$(sed -n '/^\[options\]/,/^\[/p' "$PACMAN_CONF")"
+    match="$(printf '%s\n' "$options_section" | grep -E "^#?${option}\$" | head -n 1)"
 
-    printf '%s\n' "$options_section" | grep -qE "^${option}\$" && return 0
-
-    if printf '%s\n' "$options_section" | grep -qE "^#${option}\$"; then
-        sudo sed -i "/^\[options\]/,/^\[/{s/^#${option}\$/${option}/}" "$PACMAN_CONF"
-    else
-        sudo sed -i "/^\[options\]/a ${option}" "$PACMAN_CONF"
-    fi
+    case "$match" in
+        "$option") return 0 ;;
+        "#$option") sudo sed -i "/^\[options\]/,/^\[/{s/^#${option}\$/${option}/}" "$PACMAN_CONF" ;;
+        *) sudo sed -i "/^\[options\]/a ${option}" "$PACMAN_CONF" ;;
+    esac
 }
 
 configure_pacman() {
