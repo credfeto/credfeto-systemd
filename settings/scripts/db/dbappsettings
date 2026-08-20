@@ -1,0 +1,46 @@
+#!/bin/sh
+
+BASEDIR="$(dirname "$(readlink -f "$0")")"
+SERVER=
+DB=
+
+# Not following:
+# shellcheck disable=1091
+. "$BASEDIR/dbenv"
+
+info "Script Dir: $BASEDIR"
+
+[ -z "$SERVER" ] && die "--server not specified"
+[ -z "$DB" ] && die "--database not specified"
+[ -z "$USER" ] && die "--user not specified"
+[ -z "$PASSWORD" ] && die "--password not specified"
+
+for  CSPROJ in $(find "$PWD" -iname "*.csproj") IFS='\n'; do
+  PROJECT_DIR="$(dirname "$CSPROJ")"
+  APPSETTINGS_FILE="$PROJECT_DIR/appsettings.json"
+  LOCAL_APPSETTINGS_FILE="$PROJECT_DIR/appsettings-local.json"
+
+  if [  -f "$APPSETTINGS_FILE" ]; then
+    info "Found $APPSETTINGS_FILE"
+    if [ ! -f "$LOCAL_APPSETTINGS_FILE" ]; then
+      info "Creating $LOCAL_APPSETTINGS_FILE..."
+      cat << EOF > "$LOCAL_APPSETTINGS_FILE"
+{"DatabaseConfiguration": {"Provider":"","ConnectionString":""}}
+EOF
+    else
+      info "Existing $LOCAL_APPSETTINGS_FILE..."
+    fi
+
+    # Single jq call writing to a temp file, then moved into place: reading
+    # from and writing to the same file within one pipeline (piping jq's
+    # output through tee back onto its own input file) races jq's read
+    # against tee's truncating open and reliably loses, leaving the file
+    # empty.
+    JQ_TMP="$(mktemp)"
+    jq --arg Provider "mssql" \
+       --arg ConnectionString "Database=$DB;Server=$SERVER;User ID=$USER;Password=$PASSWORD;Application Name=$DB;Connection Timeout=60;TrustServerCertificate=true" \
+       '.DatabaseConfiguration.Provider=$Provider | .DatabaseConfiguration.ConnectionString=$ConnectionString' \
+       "$LOCAL_APPSETTINGS_FILE" > "$JQ_TMP" \
+      && mv "$JQ_TMP" "$LOCAL_APPSETTINGS_FILE"
+  fi
+done

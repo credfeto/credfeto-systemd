@@ -1,0 +1,96 @@
+#! /bin/sh
+
+SCRIPTDIR="$(dirname "$(readlink -f "$0")")"
+BASEDIR="$(dirname "$SCRIPTDIR")"
+
+# shellcheck source=../lib/common disable=SC1091
+. "$BASEDIR/lib/common"
+
+# Overridable so this script is testable without real root/sudo (tests point
+# it at a temp dir they already own); defaults to the real system location.
+DEV_SCRIPTS_BIN_DIR="${DEV_SCRIPTS_BIN_DIR:-/usr/local/bin}"
+DEV_SCRIPTS_SOURCE_DIRS="db development general git linux"
+
+# Uses sudo only when the target directory isn't already writable by the
+# invoking user - keeps this runnable without real root under test, while
+# still using sudo for the real /usr/local/bin case.
+dev_scripts_sudo() {
+    if [ -w "$DEV_SCRIPTS_BIN_DIR" ] || { [ ! -e "$DEV_SCRIPTS_BIN_DIR" ] && [ -w "$(dirname "$DEV_SCRIPTS_BIN_DIR")" ]; }; then
+        "$@"
+    else
+        sudo "$@"
+    fi
+}
+
+# Prints the canonical path of every executable regular file across all
+# source directories, one per line. Called once; both check_no_collisions
+# and install_dev_scripts below iterate the captured result instead of
+# each re-walking settings/scripts/ themselves.
+list_dev_scripts() {
+    for DIR in $DEV_SCRIPTS_SOURCE_DIRS; do
+        SRC_DIR="$BASEDIR/settings/scripts/$DIR"
+        [ -d "$SRC_DIR" ] || continue
+
+        for SCRIPT in "$SRC_DIR"/*; do
+            [ -f "$SCRIPT" ] || continue
+            [ -x "$SCRIPT" ] || continue
+
+            readlink -f "$SCRIPT"
+        done
+    done
+}
+
+check_no_collisions() {
+    DUPLICATES=$(printf '%s\n' "$DEV_SCRIPT_PATHS" | while IFS= read -r SCRIPT; do [ -n "$SCRIPT" ] && basename "$SCRIPT"; done | sort | uniq -d)
+    if [ -n "$DUPLICATES" ]; then
+        die "Duplicate script name(s) across settings/scripts/: $(printf '%s' "$DUPLICATES" | tr '\n' ' ')"
+    fi
+}
+
+# Removes any symlink in DEV_SCRIPTS_BIN_DIR that points into this repo's
+# settings/scripts/ tree but whose target no longer exists (the script was
+# renamed or removed there since a prior install run). Leaves every other
+# symlink/file in DEV_SCRIPTS_BIN_DIR untouched.
+prune_stale_symlinks() {
+    [ -d "$DEV_SCRIPTS_BIN_DIR" ] || return 0
+
+    for LINK in "$DEV_SCRIPTS_BIN_DIR"/*; do
+        [ -L "$LINK" ] || continue
+
+        TARGET=$(readlink -f "$LINK" 2>/dev/null)
+        [ -n "$TARGET" ] || continue
+
+        case "$TARGET" in
+            "$BASEDIR"/settings/scripts/*)
+                if [ ! -e "$TARGET" ]; then
+                    info "Removing stale symlink $LINK"
+                    dev_scripts_sudo rm -f "$LINK"
+                fi
+                ;;
+        esac
+    done
+}
+
+install_dev_scripts() {
+    info "Installing dev scripts into $DEV_SCRIPTS_BIN_DIR"
+
+    DEV_SCRIPT_PATHS=$(list_dev_scripts)
+
+    check_no_collisions
+
+    dev_scripts_sudo install -d -m 755 "$DEV_SCRIPTS_BIN_DIR"
+
+    prune_stale_symlinks
+
+    printf '%s\n' "$DEV_SCRIPT_PATHS" | while IFS= read -r SCRIPT; do
+        [ -n "$SCRIPT" ] || continue
+
+        NAME=$(basename "$SCRIPT")
+        info "Linking $NAME"
+        dev_scripts_sudo ln -sf "$SCRIPT" "$DEV_SCRIPTS_BIN_DIR/$NAME"
+    done
+
+    success "Dev scripts installed"
+}
+
+install_dev_scripts

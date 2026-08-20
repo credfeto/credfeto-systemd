@@ -1,0 +1,54 @@
+#! /bin/sh
+
+SCRIPTDIR="$(dirname "$(readlink -f "$0")")"
+BASEDIR="$(dirname "$SCRIPTDIR")"
+
+# shellcheck source=../lib/common disable=SC1091
+. "$BASEDIR/lib/common"
+
+# Unlike every other install.d/ step, this deliberately does not use sudo:
+# it configures the invoking user's own ~/.gitconfig, not system state under
+# /etc, so it must run as that user.
+install_git_environment() {
+    info "Configuring git identity and behaviour"
+
+    git config --global user.name "Mark Ridgwell"
+    git config --global user.email credfeto@users.noreply.github.com
+
+    # GPG Signing of commits/Tags etc. --with-colons is gpg's stable
+    # machine-readable interface (unlike the human-readable listing, its
+    # column layout isn't tied to gpg version/locale); the fpr record
+    # directly after a pub record is that key's fingerprint.
+    GPG_FINGERPRINT="$(gpg --list-keys --with-colons credfeto@users.noreply.github.com 2>/dev/null | awk -F: '/^fpr:/ {print $10; exit}')"
+    [ -n "$GPG_FINGERPRINT" ] || die "No GPG key found for credfeto@users.noreply.github.com; cannot configure commit signing"
+    git config --global user.signingkey "$GPG_FINGERPRINT"
+    git config --global commit.gpgsign true
+
+    git config --global pull.rebase true
+    git config --global merge.ff false
+    git config --global rebase.autosquash true
+    git config --global core.autocrlf false
+    git config --global core.ignorecase false
+    git config --global fetch.prune true
+    git config --global fetch.pruneTags true
+    git config --global fetch.recurseSubModules true
+    git config --global push.autoSetupRemote true
+
+    git config --global core.preloadindex true
+    git config --global core.fscache true
+
+    git config --global alias.lg "log --oneline --color --decorate --graph --branches --tags"
+
+    git config --global alias.renormalise "add . --renormalize"
+    git config --global alias.renormalize "add . --renormalize"
+
+    # Switch to ssh for github etc when an https url is used
+    git config --global url."git@github.com:".insteadOf "https://github.com/"
+    git config --global url."git@gitlab.com:".insteadOf "https://gitlab.com/"
+    git config --global url."git@bitbucket.org:".insteadOf "https://bitbucket.org/"
+    git config --global url."https://aur.markridgwell.com/".insteadOf "https://aur.archlinux.org/"
+
+    success "Git environment configured"
+}
+
+install_git_environment

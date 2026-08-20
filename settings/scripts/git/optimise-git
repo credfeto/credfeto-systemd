@@ -1,0 +1,41 @@
+#!/bin/sh
+
+die() {
+    printf '\n\033[31m✗\033[0m %s\n' "$*" >&2
+    exit 1
+}
+
+success() {
+    printf '\n\033[32m✓\033[0m %s\n' "$*"
+}
+
+info() {
+    printf '\n\033[32m→\033[0m %s\n' "$*"
+}
+
+info "PWD: $(pwd)"
+
+find "$(pwd)"/* -name '*.git' -print | sed "s|/.git$||" | sort -u | grep -v '\.cache' | while IFS= read -r line
+do
+  CURRENT_DIR=$line
+
+  info "Optimising ${CURRENT_DIR}..."
+
+  info "Pruning remotes..."
+  for REMOTE in $(git -C "$CURRENT_DIR" remote)
+  do
+    info "Pruning ${REMOTE}..."
+    git -C "$CURRENT_DIR" remote prune "$REMOTE"
+  done
+
+  info "Repacking..."
+  git -C "$CURRENT_DIR" repack
+  info "Pruning packed..."
+  git -C "$CURRENT_DIR" prune-packed
+  info "Expiring reflog..."
+  git -C "$CURRENT_DIR" reflog expire --expire=1.month.ago
+  info "Garbage collecting..."
+  git -C "$CURRENT_DIR" gc --aggressive --prune 2>&1
+
+  success "Done with ${CURRENT_DIR}"
+done
