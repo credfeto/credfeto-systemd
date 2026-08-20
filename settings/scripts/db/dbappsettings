@@ -31,8 +31,16 @@ EOF
       info "Existing $LOCAL_APPSETTINGS_FILE..."
     fi
 
-    jq --arg Provider "mssql" '.DatabaseConfiguration.Provider=$Provider' "$LOCAL_APPSETTINGS_FILE" | \
-      jq --arg ConnectionString "Database=$DB;Server=$SERVER;User ID=$USER;Password=$PASSWORD;Application Name=$DB;Connection Timeout=60;TrustServerCertificate=true" '.DatabaseConfiguration.ConnectionString=$ConnectionString' | \
-      tee "$LOCAL_APPSETTINGS_FILE"
+    # Single jq call writing to a temp file, then moved into place: reading
+    # from and writing to the same file within one pipeline (piping jq's
+    # output through tee back onto its own input file) races jq's read
+    # against tee's truncating open and reliably loses, leaving the file
+    # empty.
+    JQ_TMP="$(mktemp)"
+    jq --arg Provider "mssql" \
+       --arg ConnectionString "Database=$DB;Server=$SERVER;User ID=$USER;Password=$PASSWORD;Application Name=$DB;Connection Timeout=60;TrustServerCertificate=true" \
+       '.DatabaseConfiguration.Provider=$Provider | .DatabaseConfiguration.ConnectionString=$ConnectionString' \
+       "$LOCAL_APPSETTINGS_FILE" > "$JQ_TMP" \
+      && mv "$JQ_TMP" "$LOCAL_APPSETTINGS_FILE"
   fi
 done

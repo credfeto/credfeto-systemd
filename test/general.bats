@@ -98,6 +98,21 @@ setup() {
     [ -L "${HOME}/Pictures/Backgrounds/dt-link.jpg" ]
 }
 
+@test "wallpaper does not attempt to copy into an empty Zoom virtual-background directory" {
+    setup_fake_bin git
+    mkdir -p "${HOME}/Pictures"
+    mkdir -p "${HOME}/work/thirdparty/wallpapers"
+    printf 'fake-jpg-1' > "${HOME}/work/thirdparty/wallpapers/one.jpg"
+    # Present, but with no "{...}"-named subfolder yet - e.g. Zoom's virtual
+    # background picker was opened but no custom background added.
+    mkdir -p "${HOME}/.var/app/us.zoom.Zoom/.zoom/data/VirtualBkgnd_Custom"
+
+    run "${GENERAL_DIR}/wallpaper"
+    [ "${status}" -eq 0 ]
+    [[ "${output}" != *"cp: missing"* ]]
+    [[ "${output}" != *"omitting"* ]]
+}
+
 # ── install-dotnet-tools ───────────────────────────────────────────────────
 
 @test "install-dotnet-tools creates a tool manifest when absent, then installs every tool" {

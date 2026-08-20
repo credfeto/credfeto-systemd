@@ -46,7 +46,7 @@ install_git_environment() {
     git config --global url."git@github.com:".insteadOf "https://github.com/"
     git config --global url."git@gitlab.com:".insteadOf "https://gitlab.com/"
     git config --global url."git@bitbucket.org:".insteadOf "https://bitbucket.org/"
-    git config --global url."https://aur.markridgwell.com".insteadOf "https://aur.archlinux.org/"
+    git config --global url."https://aur.markridgwell.com/".insteadOf "https://aur.archlinux.org/"
 
     success "Git environment configured"
 }

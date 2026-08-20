@@ -15,7 +15,7 @@ info() {
 
 info "PWD: $(pwd)"
 
-find "$(pwd)"/* -name '*.git' -print | sed "s|/.git$||" | sort -u | grep -v .cache | while IFS= read -r line
+find "$(pwd)"/* -name '*.git' -print | sed "s|/.git$||" | sort -u | grep -v '\.cache' | while IFS= read -r line
 do
   CURRENT_DIR=$line
 

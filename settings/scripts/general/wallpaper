@@ -41,9 +41,11 @@ ln -s -f "$wallpaper" "$HOME/Pictures/Backgrounds/dt-link.jpg"
 if [ -d "$HOME/.var/app/us.zoom.Zoom/.zoom/data/VirtualBkgnd_Custom" ]; then
 
   WP=$(find "$HOME/.var/app/us.zoom.Zoom/.zoom/data/VirtualBkgnd_Custom" -maxdepth 1 -name '{*' -print -quit)
-  info "Zoom virtual background: $WP"
 
-  cp --reflink -f "$wallpaper" "$WP"
+  if [ -n "$WP" ]; then
+    info "Zoom virtual background: $WP"
+    cp --reflink -f "$wallpaper" "$WP"
+  fi
 
 fi
 

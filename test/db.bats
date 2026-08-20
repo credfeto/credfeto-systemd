@@ -78,14 +78,14 @@ setup() {
     [[ "${output}" == *"Creating"*"appsettings-local.json"* ]]
     [ -f src/Foo/appsettings-local.json ]
 
-    # PRE-EXISTING BUG (not fixed here - out of scope, verbatim move): the
-    # script pipes `jq "$FILE" | jq | tee "$FILE"` - reading from and writing
-    # to the same file within one pipeline. tee's truncating open reliably
-    # wins the race against jq's read on this system, so the file is left
-    # empty rather than containing the populated connection string. Flagged
-    # in the migration report; asserting the actual (broken) behaviour here
-    # so the test suite doesn't silently hide it.
-    [ ! -s src/Foo/appsettings-local.json ]
+    run jq -r '.DatabaseConfiguration.Provider' src/Foo/appsettings-local.json
+    [ "${output}" = "mssql" ]
+
+    run jq -r '.DatabaseConfiguration.ConnectionString' src/Foo/appsettings-local.json
+    [[ "${output}" == *"Database=mydb"* ]]
+    [[ "${output}" == *"Server=myserver"* ]]
+    [[ "${output}" == *"User ID=myuser"* ]]
+    [[ "${output}" == *"Password=mypass"* ]]
 }
 
 @test "dbappsettings leaves an existing appsettings-local.json in place" {
