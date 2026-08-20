@@ -18,10 +18,11 @@ PACMAN_CONF="${PACMAN_CONF:-/etc/pacman.conf}"
 # touched.
 ensure_pacman_option() {
     option="$1"
+    options_section="$(sed -n '/^\[options\]/,/^\[/p' "$PACMAN_CONF")"
 
-    sed -n '/^\[options\]/,/^\[/p' "$PACMAN_CONF" | grep -qE "^${option}\$" && return 0
+    printf '%s\n' "$options_section" | grep -qE "^${option}\$" && return 0
 
-    if sed -n '/^\[options\]/,/^\[/p' "$PACMAN_CONF" | grep -qE "^#${option}\$"; then
+    if printf '%s\n' "$options_section" | grep -qE "^#${option}\$"; then
         sudo sed -i "/^\[options\]/,/^\[/{s/^#${option}\$/${option}/}" "$PACMAN_CONF"
     else
         sudo sed -i "/^\[options\]/a ${option}" "$PACMAN_CONF"
