@@ -13,13 +13,13 @@ setup() {
     # files - dbenv/querydb both walk up from PWD and read ~/.database.
     export HOME="${BATS_TEST_TMPDIR}/home"
     mkdir -p "${HOME}"
-    # dbenv's existence guard around sourcing ~/.database is a no-op (missing
-    # `&&`, pre-existing in the original script - see final report), so it
-    # unconditionally sources the file and hard-crashes if it is absent.
-    # Pre-create it empty so tests exercise the intended die()/parse_cmdline
-    # behaviour instead of that crash.
-    touch "${HOME}/.database"
     cd "${BATS_TEST_TMPDIR}" || exit
+}
+
+@test "dbenv does not crash when ~/.database is absent" {
+    run "${DBENV}" --server myserver --user myuser --password mypass
+    [[ "${output}" == *"Server: myserver"* ]]
+    [[ "${output}" != *"No such file or directory"* ]]
 }
 
 @test "dbenv dies when --server is not specified" {

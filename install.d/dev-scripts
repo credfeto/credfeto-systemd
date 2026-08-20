@@ -22,8 +22,10 @@ dev_scripts_sudo() {
     fi
 }
 
-# Prints the basename of every executable regular file across all source
-# directories, one per line.
+# Prints the canonical path of every executable regular file across all
+# source directories, one per line. Called once; both check_no_collisions
+# and install_dev_scripts below iterate the captured result instead of
+# each re-walking settings/scripts/ themselves.
 list_dev_scripts() {
     for DIR in $DEV_SCRIPTS_SOURCE_DIRS; do
         SRC_DIR="$BASEDIR/settings/scripts/$DIR"
@@ -33,13 +35,13 @@ list_dev_scripts() {
             [ -f "$SCRIPT" ] || continue
             [ -x "$SCRIPT" ] || continue
 
-            basename "$SCRIPT"
+            readlink -f "$SCRIPT"
         done
     done
 }
 
 check_no_collisions() {
-    DUPLICATES=$(list_dev_scripts | sort | uniq -d)
+    DUPLICATES=$(printf '%s\n' "$DEV_SCRIPT_PATHS" | while IFS= read -r SCRIPT; do [ -n "$SCRIPT" ] && basename "$SCRIPT"; done | sort | uniq -d)
     if [ -n "$DUPLICATES" ]; then
         die "Duplicate script name(s) across settings/scripts/: $(printf '%s' "$DUPLICATES" | tr '\n' ' ')"
     fi
@@ -72,24 +74,20 @@ prune_stale_symlinks() {
 install_dev_scripts() {
     info "Installing dev scripts into $DEV_SCRIPTS_BIN_DIR"
 
+    DEV_SCRIPT_PATHS=$(list_dev_scripts)
+
     check_no_collisions
 
     dev_scripts_sudo install -d -m 755 "$DEV_SCRIPTS_BIN_DIR"
 
     prune_stale_symlinks
 
-    for DIR in $DEV_SCRIPTS_SOURCE_DIRS; do
-        SRC_DIR="$BASEDIR/settings/scripts/$DIR"
-        [ -d "$SRC_DIR" ] || continue
+    printf '%s\n' "$DEV_SCRIPT_PATHS" | while IFS= read -r SCRIPT; do
+        [ -n "$SCRIPT" ] || continue
 
-        for SCRIPT in "$SRC_DIR"/*; do
-            [ -f "$SCRIPT" ] || continue
-            [ -x "$SCRIPT" ] || continue
-
-            NAME=$(basename "$SCRIPT")
-            info "Linking $NAME"
-            dev_scripts_sudo ln -sf "$(readlink -f "$SCRIPT")" "$DEV_SCRIPTS_BIN_DIR/$NAME"
-        done
+        NAME=$(basename "$SCRIPT")
+        info "Linking $NAME"
+        dev_scripts_sudo ln -sf "$SCRIPT" "$DEV_SCRIPTS_BIN_DIR/$NAME"
     done
 
     success "Dev scripts installed"

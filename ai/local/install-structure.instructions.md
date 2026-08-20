@@ -50,6 +50,8 @@ Examples already applied:
 | `enable_services` | `enable-services` |
 | `configure_flatpak` | `configure-flatpak` |
 | `install_shell_environment` | `shell-environment` |
+| `install_git_environment` | `git-environment` |
+| `install_dev_scripts` | `dev-scripts` |
 
 ## Calling Convention in `install`
 
