@@ -23,10 +23,20 @@ setup() {
     [ -L "${DEV_SCRIPTS_BIN_DIR}/dbenv" ]
     [ -L "${DEV_SCRIPTS_BIN_DIR}/login" ]
     [ -L "${DEV_SCRIPTS_BIN_DIR}/buildcheck" ]
-    # preview-config is a non-executable sibling data file - must not be
-    # linked as if it were a standalone command.
-    [ ! -e "${DEV_SCRIPTS_BIN_DIR}/preview-config" ]
     readlink -f "${DEV_SCRIPTS_BIN_DIR}/dbenv" | grep -qF "settings/scripts/db/dbenv"
+}
+
+# Copies install.d/dev-scripts and lib/common into a throwaway fake repo
+# tree under BATS_TEST_TMPDIR/fake-scripts-repo, so a test can populate
+# settings/scripts/ with fixtures without touching the real repo tree, then
+# runs the copied dev-scripts against it.
+run_dev_scripts_against_fake_repo() {
+    mkdir -p "${BATS_TEST_TMPDIR}/fake-scripts-repo/lib" "${BATS_TEST_TMPDIR}/fake-scripts-repo/install.d"
+    cp "${REPO_DIR}/lib/common" "${BATS_TEST_TMPDIR}/fake-scripts-repo/lib/common"
+    cp "${DEV_SCRIPTS}" "${BATS_TEST_TMPDIR}/fake-scripts-repo/install.d/dev-scripts"
+    chmod +x "${BATS_TEST_TMPDIR}/fake-scripts-repo/install.d/dev-scripts"
+
+    run "${BATS_TEST_TMPDIR}/fake-scripts-repo/install.d/dev-scripts"
 }
 
 @test "dev-scripts dies on a basename collision across source directories" {
@@ -34,17 +44,26 @@ setup() {
     printf '#!/bin/sh\nexit 0\n' > "${BATS_TEST_TMPDIR}/fake-scripts-repo/settings/scripts/db/dup"
     printf '#!/bin/sh\nexit 0\n' > "${BATS_TEST_TMPDIR}/fake-scripts-repo/settings/scripts/development/dup"
     chmod +x "${BATS_TEST_TMPDIR}/fake-scripts-repo/settings/scripts/db/dup" "${BATS_TEST_TMPDIR}/fake-scripts-repo/settings/scripts/development/dup"
-    cp "${DEV_SCRIPTS}" "${BATS_TEST_TMPDIR}/fake-scripts-repo/dev-scripts-under-test"
-    mkdir -p "${BATS_TEST_TMPDIR}/fake-scripts-repo/lib"
-    cp "${REPO_DIR}/lib/common" "${BATS_TEST_TMPDIR}/fake-scripts-repo/lib/common"
-    mkdir -p "${BATS_TEST_TMPDIR}/fake-scripts-repo/install.d"
-    mv "${BATS_TEST_TMPDIR}/fake-scripts-repo/dev-scripts-under-test" "${BATS_TEST_TMPDIR}/fake-scripts-repo/install.d/dev-scripts"
-    chmod +x "${BATS_TEST_TMPDIR}/fake-scripts-repo/install.d/dev-scripts"
 
-    run "${BATS_TEST_TMPDIR}/fake-scripts-repo/install.d/dev-scripts"
+    run_dev_scripts_against_fake_repo
     [ "${status}" -eq 1 ]
     [[ "${output}" == *"Duplicate script name"* ]]
     [[ "${output}" == *"dup"* ]]
+}
+
+@test "dev-scripts does not link a non-executable sibling data file" {
+    mkdir -p "${BATS_TEST_TMPDIR}/fake-scripts-repo/settings/scripts/db"
+    printf '#!/bin/sh\nexit 0\n' > "${BATS_TEST_TMPDIR}/fake-scripts-repo/settings/scripts/db/dbtool"
+    chmod +x "${BATS_TEST_TMPDIR}/fake-scripts-repo/settings/scripts/db/dbtool"
+    # Non-executable data file living alongside a real script, e.g. a
+    # config/template file a script reads - must not be linked into
+    # DEV_SCRIPTS_BIN_DIR as if it were a standalone command.
+    printf 'not a script\n' > "${BATS_TEST_TMPDIR}/fake-scripts-repo/settings/scripts/db/dbtool-config"
+
+    run_dev_scripts_against_fake_repo
+    [ "${status}" -eq 0 ]
+    [ -L "${DEV_SCRIPTS_BIN_DIR}/dbtool" ]
+    [ ! -e "${DEV_SCRIPTS_BIN_DIR}/dbtool-config" ]
 }
 
 @test "dev-scripts prunes a stale symlink left by a renamed/removed script, leaves unrelated symlinks alone" {
@@ -102,6 +121,12 @@ EOF
 
     run git config --global url."git@github.com:".insteadOf
     [ "${output}" = "https://github.com/" ]
+
+    # Base must carry the same trailing slash as insteadOf's value - git's
+    # url rewrite is a literal prefix substitution, so a missing slash here
+    # drops the separator between host and path in every rewritten URL.
+    run git config --global url."https://aur.markridgwell.com/".insteadOf
+    [ "${output}" = "https://aur.archlinux.org/" ]
 }
 
 @test "git-environment dies rather than enabling gpgsign when no signing key is found" {

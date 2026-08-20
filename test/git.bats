@@ -41,6 +41,14 @@ make_bare_remote_and_clone() {
     [[ "${output}" == *"1 repo(s) fetched, 0 repo(s) skipped"* ]]
 }
 
+@test "fetch does not exclude a repo whose path merely contains \"cache\", only ones under a literal .cache directory" {
+    make_bare_remote_and_clone mycache-tools
+    cd "${BATS_TEST_TMPDIR}/repos"
+    run "${GIT_DIR_SCRIPTS}/fetch"
+    [ "${status}" -eq 0 ]
+    [[ "${output}" == *"1 repo(s) fetched, 0 repo(s) skipped"* ]]
+}
+
 @test "fetch skips a repo with no configured origin" {
     mkdir -p "${BATS_TEST_TMPDIR}/repos/no-origin"
     git init --quiet "${BATS_TEST_TMPDIR}/repos/no-origin"
